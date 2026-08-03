@@ -21,7 +21,7 @@ export default function AdminLayout({ children }) {
       <div className="flex h-screen flex-1 flex-col overflow-hidden">
         <Header collapsed={collapsed} />
 
-        <main className="flex-1 overflow-y-auto p-8 bg-neutral-50">
+        <main className="flex-1 overflow-y-auto p-8 bg-neutral-50"> 
           {children}
         </main>
       </div>
