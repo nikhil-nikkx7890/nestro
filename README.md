@@ -106,6 +106,48 @@ Through Nestro, I aim to learn and practice:
 
 ---
 
+# 📸 Screenshots
+
+> Screenshots will be added as the project progresses.
+
+### Admin Dashboard
+
+Coming Soon
+
+---
+
+### Categories Module
+
+#### Categories List
+
+![Categories List](.github/assets/images/category-list.png)
+
+Browse, search, edit and manage furniture categories from the admin panel.
+
+---
+
+#### Create / Edit Category
+
+![Category Modal](.github/assets/images/category-modal.png)
+
+A reusable form used for both creating and updating categories.
+
+---
+
+### Room Types Module
+
+Coming Soon
+
+---
+
+### Products Module
+
+Coming Soon
+
+---
+
+
+
 # 🏗 Architecture
 
 ```
@@ -373,33 +415,6 @@ http://localhost:3000
 
 to view the application.
 
-# 📸 Screenshots
-
-> Screenshots will be added as the project progresses.
-
-### Admin Dashboard
-
-Coming Soon
-
----
-
-### Categories Module
-
-Coming Soon
-
----
-
-### Room Types Module
-
-Coming Soon
-
----
-
-### Products Module
-
-Coming Soon
-
----
 
 # 📚 Learning Journey
 
@@ -478,7 +493,7 @@ If you have ideas for improving the architecture or implementation, feel free to
 **Nikhil Choudhary**
 
 - GitHub: https://github.com/nikhil-nikkx7890
-- LinkedIn: *(Profile link will be added here.)*
+- LinkedIn: https://www.linkedin.com/in/nikhil-choudhary-27b2b83b9/
 
 ---
 
