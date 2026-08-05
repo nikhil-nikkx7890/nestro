@@ -134,12 +134,6 @@ A reusable form used for both creating and updating categories.
 
 ---
 
-### Room Types Module
-
-Coming Soon
-
----
-
 ### Products Module
 
 Coming Soon
@@ -158,7 +152,7 @@ Browser
 Next.js Frontend
 │
 ▼
-Pages
+App Router Pages
 │
 ▼
 Components
@@ -203,6 +197,7 @@ Nestro/
 │ │ ├── app/
 │ │ ├── components/
 │ │ ├── services/
+│ │ ├── utils/
 │ │ ├── lib/
 │ │ └── hooks/ (future)
 │
@@ -261,6 +256,33 @@ Nestro/
 - Toast Notifications
 - Axios Service Layer
 
+### Room Type Management
+
+#### Backend
+
+- Create Room Type
+- Get All Room Types
+- Get Room Type By ID
+- Update Room Type
+- Delete Room Type
+- Duplicate Room Type Validation
+- ObjectId Validation Middleware
+- Proper Error Handling
+- RESTful API Structure
+
+#### Frontend
+
+- Room Types Listing
+- Create Room Type
+- Edit Room Type
+- Delete Room Type
+- Shared Create/Edit Modal
+- Shared Room Type Form
+- Delete Confirmation Modal
+- Loading States
+- Error Handling
+- Toast Notifications
+- Axios Service Layer
 ---
 
 ### Reusable Architecture
@@ -269,6 +291,8 @@ Nestro/
 - Reusable Delete Confirmation Modal
 - Shared Axios Instance
 - Reusable Validation Middleware
+- Shared Text Formatter Utilities
+- Reusable CRUD Architecture
 - Feature-based Folder Structure
 
 ---
@@ -279,7 +303,7 @@ Nestro/
 
 - ✅ Admin Dashboard
 - ✅ Categories
-- ⬜ Room Types
+- ✅ Room Types
 - ⬜ Image Upload
 - ⬜ Products
 - ⬜ Brands
@@ -447,7 +471,9 @@ Rather than only focusing on building features, I aim to understand the reasonin
 
 🟢 Category Management
 
-🟡 Room Types (Next)
+🟢 Room Type Management
+
+🟡 Brands (Next)
 
 ⚪ Image Upload
 
