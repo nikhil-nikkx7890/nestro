@@ -1,0 +1,85 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
+export default function RoomTypeForm({ roomType, onSubmit, onClose,isSubmitting }) {
+
+    const [formData, setFormData] = useState({
+        name: roomType?.name || "",
+        isActive: roomType?.isActive ?? true,
+    });
+
+    useEffect(() => {
+        setFormData({
+            name: roomType?.name || "",
+            isActive: roomType?.isActive ?? true,
+        });
+    }, [roomType]);
+
+    const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
+
+        setFormData((prev) => ({
+            ...prev,
+            [name]: type === "checkbox" ? checked : value,
+        }));
+    };
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        onSubmit(formData);
+    };
+
+    return (
+        <form onSubmit={handleSubmit} className="space-y-5">
+            {/* RoomType Name */}
+            <div>
+                <label className="mb-2 block text-sm font-medium text-neutral-700">
+                    Room Type Name
+                </label>
+
+                <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Enter Room type name"
+                    className="w-full rounded-xl border border-neutral-300 px-4 py-3 outline-none transition focus:border-neutral-900"
+                />
+            </div>
+
+
+            {/* Active */}
+            <label className="flex items-center gap-3">
+                <input
+                    type="checkbox"
+                    name="isActive"
+                    checked={formData.isActive}
+                    onChange={handleChange}
+                />
+
+                <span className="text-sm font-medium">
+                    Active RoomType
+                </span>
+            </label>
+
+            <div className="flex justify-end gap-3">
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded-xl border px-5 py-2.5"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="rounded-xl bg-neutral-900 px-5 py-2.5 text-white"
+                >
+                    {isSubmitting ? "Saving..." : "Save Room Type"}
+                </button>
+            </div>
+        </form>
+    );
+}

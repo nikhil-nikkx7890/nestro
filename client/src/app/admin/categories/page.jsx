@@ -13,7 +13,7 @@ import {
   createCategory,
   updateCategory,
     deleteCategory,
-} from "@/services/categoryService";
+} from "@/services/category.service";
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState([]);
