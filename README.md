@@ -1,4 +1,5 @@
 # Nestro
+
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![React](https://img.shields.io/badge/React-19-61DAFB)
 ![Express](https://img.shields.io/badge/Express-5-lightgrey)
@@ -139,8 +140,6 @@ A reusable form used for both creating and updating categories.
 Coming Soon
 
 ---
-
-
 
 # 🏗 Architecture
 
@@ -284,7 +283,6 @@ Nestro/
 - Toast Notifications
 - Axios Service Layer
 
-
 ### Brand Management
 
 #### Backend
@@ -307,6 +305,34 @@ Nestro/
 - Delete Brand
 - Shared Create/Edit Modal
 - Shared Brand Form
+- Delete Confirmation Modal
+- Loading States
+- Error Handling
+- Toast Notifications
+- Axios Service Layer
+
+### Material Management
+
+#### Backend
+
+- Create Material
+- Get All Materials
+- Get Material By ID
+- Update Material
+- Delete Material
+- Duplicate Material Validation
+- ObjectId Validation Middleware
+- Proper Error Handling
+- RESTful API Structure
+
+#### Frontend
+
+- Materials Listing
+- Create Material
+- Edit Material
+- Delete Material
+- Shared Create/Edit Modal
+- Shared Material Form
 - Delete Confirmation Modal
 - Loading States
 - Error Handling
@@ -337,7 +363,7 @@ Nestro/
 - ⬜ Image Upload
 - ⬜ Products
 - ✅ Brands
-- ⬜ Materials
+- ✅ Materials
 - ⬜ Colors
 
 ---
@@ -469,7 +495,6 @@ http://localhost:3000
 
 to view the application.
 
-
 # 📚 Learning Journey
 
 Nestro is my long-term learning project where I document my journey of becoming a Full Stack MERN Developer.
@@ -505,7 +530,9 @@ Rather than only focusing on building features, I aim to understand the reasonin
 
 🟢 Brand Management
 
-🟡 Materials (Next)
+🟢 Material Management
+
+🟡 Colors (Next)
 
 ⚪ Image Upload
 
