@@ -28,10 +28,10 @@ export default function RoomTypeTable({
             </div>
         );
     }
-
+    // TODO: Implement search
     return (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
-            // TODO: Implement search
+
             <div className="border-b border-neutral-200 p-6">
                 <div className="relative max-w-sm">
                     <Search
