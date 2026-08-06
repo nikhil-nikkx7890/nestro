@@ -283,6 +283,36 @@ Nestro/
 - Error Handling
 - Toast Notifications
 - Axios Service Layer
+
+
+### Brand Management
+
+#### Backend
+
+- Create Brand
+- Get All Brands
+- Get Brand By ID
+- Update Brand
+- Delete Brand
+- Duplicate Brand Validation
+- ObjectId Validation Middleware
+- Proper Error Handling
+- RESTful API Structure
+
+#### Frontend
+
+- Brands Listing
+- Create Brand
+- Edit Brand
+- Delete Brand
+- Shared Create/Edit Modal
+- Shared Brand Form
+- Delete Confirmation Modal
+- Loading States
+- Error Handling
+- Toast Notifications
+- Axios Service Layer
+
 ---
 
 ### Reusable Architecture
@@ -306,7 +336,7 @@ Nestro/
 - ✅ Room Types
 - ⬜ Image Upload
 - ⬜ Products
-- ⬜ Brands
+- ✅ Brands
 - ⬜ Materials
 - ⬜ Colors
 
@@ -473,7 +503,9 @@ Rather than only focusing on building features, I aim to understand the reasonin
 
 🟢 Room Type Management
 
-🟡 Brands (Next)
+🟢 Brand Management
+
+🟡 Materials (Next)
 
 ⚪ Image Upload
 
