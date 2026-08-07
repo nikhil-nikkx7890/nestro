@@ -33,6 +33,25 @@ The goal is to build an application that demonstrates not only technical skills 
 
 ---
 
+Nestro is being designed as a unified commerce platform rather than a single application.
+
+The long-term vision consists of multiple client applications sharing a common backend.
+
+Current architecture includes:
+
+- Admin Application
+- Customer Store (planned)
+
+Future expansion may include:
+
+- Seller Portal
+- Mobile Application
+- Public API
+
+This approach allows the platform to grow while keeping business logic centralized inside a shared backend.
+
+---
+
 # 🎯 Project Goals
 
 Through Nestro, I aim to learn and practice:
@@ -144,44 +163,43 @@ Coming Soon
 # 🏗 Architecture
 
 ```
+                    NESTRO
 
-Browser
-│
-▼
-Next.js Frontend
-│
-▼
-App Router Pages
-│
-▼
-Components
-│
-▼
-Service Layer
-│
-▼
-Axios
-│
-────────────────────────────── HTTP ──────────────────────────────
-│
-Express.js
-│
-▼
-Routes
-│
-▼
-Middlewares
-│
-▼
-Controllers
-│
-▼
-Models
-│
-▼
-MongoDB
+          ┌──────────────────────┐
+          │                      │
+
+          ▼                      ▼
+
+   Admin Application     Customer Store
+
+          │                      │
+
+          └─────────┬────────────┘
+                    │
+
+            Express REST API
+
+                    │
+
+     ┌──────────────┴──────────────┐
+
+     ▼                             ▼
+
+Business Logic              Shared Middleware
+
+                    │
+
+               MongoDB Models
+
+                    │
+
+                 MongoDB
 
 ```
+
+Both the Admin Application and the Customer Store communicate with the same backend API.
+
+The backend is designed as the single source of truth for business logic, authentication, inventory, products and future commerce features.
 
 ---
 
@@ -419,23 +437,33 @@ Nestro/
 
 ---
 
-## Phase 4 — Authentication
+## Phase 4 — Platform
 
-- User Registration
-- Login
-- JWT Authentication
-- Refresh Tokens
-- Role Based Authorization
+- Authentication
+- Authorization
+- Super Admin
+- Admin
+- Customer Accounts
 
 ---
 
-## Phase 5 — Orders
+## Phase 5 — Commerce
 
 - Checkout
 - Address Management
 - Payment Integration
+- Orders
 - Order Tracking
-- Invoice Generation
+
+---
+
+## Phase 6 — Platform Expansion
+
+- Seller Portal
+- Marketplace Support
+- Reports
+- Analytics
+- Mobile API
 
 ---
 
@@ -590,6 +618,9 @@ This project follows a few core principles throughout development:
 - Keep documentation synchronized with development.
 - Follow meaningful Conventional Commits.
 - Learn every concept before moving to the next one.
+- Build the foundation before introducing complexity.
+- Make architectural decisions intentionally and document them.
+- Introduce reusable abstractions only after multiple proven implementations.
 
 ---
 
