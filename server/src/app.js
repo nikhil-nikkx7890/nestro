@@ -4,6 +4,7 @@ import categoryRoutes from "./routes/category.routes.js";
 import roomTypeRoutes from "./routes/roomType.routes.js";
 import brandRoutes from "./routes/brand.routes.js";
 import materialRoutes from "./routes/material.routes.js";
+import colorRoutes from "./routes/color.routes.js";
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/room-types", roomTypeRoutes);
 app.use("/api/brands", brandRoutes);
 app.use("/api/materials", materialRoutes);
+app.use("/api/colors", colorRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({
