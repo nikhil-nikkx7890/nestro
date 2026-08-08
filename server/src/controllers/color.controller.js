@@ -2,7 +2,7 @@ import Color from "../models/color.model.js";
 
 export const createColor = async (req, res) => {
     try {
-        const { name, isActive } = req.body;
+        const { name, hexCode, isActive } = req.body;
 
         const existingColor = await Color.findOne({
             name: { $regex: new RegExp(`^${name}$`, "i") },
@@ -17,6 +17,7 @@ export const createColor = async (req, res) => {
 
         const color = await Color.create({
             name,
+            hexCode,
             isActive,
         });
 
@@ -85,7 +86,7 @@ export const getColorById = async (req, res) => {
 export const updateColor = async (req, res) => {
     try {
         const { colorId } = req.params;
-        const { name, isActive } = req.body;
+        const { name, hexCode, isActive } = req.body;
 
         const color = await Color.findById(colorId);
 
@@ -109,6 +110,7 @@ export const updateColor = async (req, res) => {
         }
 
         color.name = name;
+        color.hexCode = hexCode;
         color.isActive = isActive;
 
         await color.save();

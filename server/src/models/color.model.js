@@ -12,6 +12,14 @@ const colorSchema = new mongoose.Schema(
             maxlength: [50, "Color name cannot exceed 50 characters"],
         },
 
+        hexCode: {
+            type: String,
+            required: [true, "Color hex code is required"],
+            trim: true,
+            uppercase: true,
+            match: [/^#[0-9A-F]{6}$/, "Hex code must be a valid 6-digit hex value, e.g. #8B5E3C"],
+        },
+
         slug: {
             type: String,
             unique: true,
