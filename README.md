@@ -100,6 +100,8 @@ Through Nestro, I aim to learn and practice:
 - Sonner
 - Lucide React
 - clsx
+- React Hook Form
+- Zod Validation
 
 ---
 
@@ -121,8 +123,6 @@ Through Nestro, I aim to learn and practice:
 - Cloudinary
 - JWT Authentication
 - Refresh Tokens
-- React Hook Form
-- Zod Validation
 
 ---
 
@@ -396,6 +396,7 @@ Nestro/
 - Shared Text Formatter Utilities
 - Reusable CRUD Architecture
 - Feature-based Folder Structure
+- Shared Form Validation Pattern (React Hook Form + Zod)
 
 ---
 
@@ -467,7 +468,7 @@ Nestro/
 
 ---
 
-## Phase 6 — Dashboard & Analytics
+## Phase 7 — Dashboard & Analytics
 
 - Sales Dashboard
 - Reports
