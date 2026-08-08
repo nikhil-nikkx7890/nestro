@@ -1,101 +1,119 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import clsx from "clsx";
 
-export default function CategoryForm({ category, onSubmit, onClose,isSubmitting }) {
-    const [formData, setFormData] = useState({
-        name: category?.name || "",
-        description: category?.description || "",
-        isActive: category?.isActive ?? true,
+import { categorySchema } from "../schemas/category.schema";
+
+export default function CategoryForm({
+  category,
+  onSubmit,
+  onClose,
+  isSubmitting,
+}) {
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      isActive: true,
+    },
+  });
+
+  useEffect(() => {
+    reset({
+      name: category?.name || "",
+      description: category?.description || "",
+      isActive: category?.isActive ?? true,
     });
+  }, [category, reset]);
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      {/* Category Name */}
+      <div>
+        <label
+          htmlFor="category-name"
+          className="mb-2 block text-sm font-medium text-neutral-700"
+        >
+          Category Name
+        </label>
 
-    useEffect(() => {
-        setFormData({
-            name: category?.name || "",
-            description: category?.description || "",
-            isActive: category?.isActive ?? true,
-        });
-    }, [category]);
+        <input
+          type="text"
+          id="category-name"
+          {...register("name")}
+          placeholder="Enter category name"
+          className={clsx(
+            "w-full rounded-xl px-4 py-3 border outline-none transition",
+            errors.name
+              ? "border-red-500"
+              : "border-neutral-300 focus:border-neutral-900",
+          )}
+        />
+        {errors.name && (
+          <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
+        )}
+      </div>
 
-    const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
+      {/* Description */}
+      <div>
+        <label
+          htmlFor="category-description"
+          className="mb-2 block text-sm font-medium text-neutral-700"
+        >
+          Description
+        </label>
 
-        setFormData((prev) => ({
-            ...prev,
-            [name]: type === "checkbox" ? checked : value,
-        }));
-    };
+        <textarea
+          id="category-description"
+          rows={4}
+          {...register("description")}
+          placeholder="Enter description"
+          className={clsx(
+            "w-full rounded-xl px-4 py-3 border outline-none transition",
+            errors.description
+              ? "border-red-500"
+              : "border-neutral-300 focus:border-neutral-900",
+          )}
+        />
+        {errors.description && (
+          <p className="mt-1 text-sm text-red-500">
+            {errors.description.message}
+          </p>
+        )}
+      </div>
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        onSubmit(formData);
-    };
+      {/* Active */}
+      <label className="flex items-center gap-3">
+        <input type="checkbox" {...register("isActive")} />
 
-    return (
-        <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Category Name */}
-            <div>
-                <label className="mb-2 block text-sm font-medium text-neutral-700">
-                    Category Name
-                </label>
+        <span className="text-sm font-medium">Active Category</span>
+      </label>
 
-                <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    placeholder="Enter category name"
-                    className="w-full rounded-xl border border-neutral-300 px-4 py-3 outline-none transition focus:border-neutral-900"
-                />
-            </div>
+      <div className="flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-xl border px-5 py-2.5"
+        >
+          Cancel
+        </button>
 
-            {/* Description */}
-            <div>
-                <label className="mb-2 block text-sm font-medium text-neutral-700">
-                    Description
-                </label>
-
-                <textarea
-                    rows={4}
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                    placeholder="Enter description"
-                    className="w-full rounded-xl border border-neutral-300 px-4 py-3 outline-none transition focus:border-neutral-900 resize-none"
-                />
-            </div>
-
-            {/* Active */}
-            <label className="flex items-center gap-3">
-                <input
-                    type="checkbox"
-                    name="isActive"
-                    checked={formData.isActive}
-                    onChange={handleChange}
-                />
-
-                <span className="text-sm font-medium">
-                    Active Category
-                </span>
-            </label>
-
-            <div className="flex justify-end gap-3">
-                <button
-                    type="button"
-                    onClick={onClose}
-                    className="rounded-xl border px-5 py-2.5"
-                >
-                    Cancel
-                </button>
-
-                <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="rounded-xl bg-neutral-900 px-5 py-2.5 text-white"
-                >
-                    {isSubmitting ? "Saving..." : "Save Category"}
-                </button>
-            </div>
-        </form>
-    );
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="rounded-xl bg-neutral-900 px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isSubmitting ? "Saving..." : "Save Category"}
+        </button>
+      </div>
+    </form>
+  );
 }

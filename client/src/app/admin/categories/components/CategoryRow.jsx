@@ -1,5 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
-import {toTitleCase} from "@/utils/formatters";
+import { toTitleCase } from "@/utils/formatters";
+import clsx from "clsx";
 
 export default function CategoryRow({ category, onEdit, onDelete }) {
   return (
@@ -12,11 +13,12 @@ export default function CategoryRow({ category, onEdit, onDelete }) {
 
       <td className="px-6 py-4">
         <span
-          className={`rounded-full px-3 py-1 text-xs font-medium ${
+          className={clsx(
+            "rounded-full px-3 py-1 text-xs font-medium",
             category.isActive
               ? "bg-emerald-100 text-emerald-700"
-              : "bg-red-100 text-red-700"
-          }`}
+              : "bg-red-100 text-red-700",
+          )}
         >
           {category.isActive ? "Active" : "Inactive"}
         </span>
@@ -26,6 +28,8 @@ export default function CategoryRow({ category, onEdit, onDelete }) {
         <div className="flex justify-end gap-2">
           <button
             onClick={() => onEdit(category)}
+            type="button"
+            aria-label={`Edit ${category.name}`}
             className="rounded-lg p-2 transition hover:bg-neutral-100"
           >
             <Pencil size={18} />
@@ -33,6 +37,8 @@ export default function CategoryRow({ category, onEdit, onDelete }) {
 
           <button
             onClick={() => onDelete(category)}
+            type="button"
+            aria-label={`Delete ${category.name}`}
             className="rounded-lg p-2 text-red-600 transition hover:bg-red-50"
           >
             <Trash2 size={18} />
