@@ -15,5 +15,10 @@ export const categorySchema = z.object({
     .trim()
     .max(500, "Category description cannot exceed 500 characters."),
 
+  image: z.object({
+    url: z.string().trim().optional().default(""),
+    publicId: z.string().trim().optional().default(""),
+  }),
+
   isActive: z.boolean(),
 });

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import clsx from "clsx";
 
 import { categorySchema } from "../schemas/category.schema";
+import ImageUpload from "@/components/ui/ImageUpload";
 
 export default function CategoryForm({
   category,
@@ -13,16 +14,21 @@ export default function CategoryForm({
   onClose,
   isSubmitting,
 }) {
+  const [isImageUploading, setIsImageUploading] = useState(false);
+
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: "",
       description: "",
+      image: { url: "", publicId: "" },
       isActive: true,
     },
   });
@@ -31,9 +37,17 @@ export default function CategoryForm({
     reset({
       name: category?.name || "",
       description: category?.description || "",
+      image: category?.image || { url: "", publicId: "" },
       isActive: category?.isActive ?? true,
     });
   }, [category, reset]);
+
+  // image isn't a native input, so react-hook-form can't track it via
+  // register(). watch() reads its current value out of RHF's state so we
+  // can pass it down as a controlled prop, and setValue() is how
+  // ImageUpload writes back into that same state on upload/remove.
+  const currentImage = watch("image");
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
       {/* Category Name */}
@@ -90,6 +104,17 @@ export default function CategoryForm({
         )}
       </div>
 
+      {/* Image */}
+      <ImageUpload
+        label="Category Image"
+        folder="nestro/categories"
+        value={currentImage}
+        onChange={(nextImage) =>
+          setValue("image", nextImage, { shouldDirty: true })
+        }
+        onUploadingChange={setIsImageUploading}
+      />
+
       {/* Active */}
       <label className="flex items-center gap-3">
         <input type="checkbox" {...register("isActive")} />
@@ -108,10 +133,14 @@ export default function CategoryForm({
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isImageUploading}
           className="rounded-xl bg-neutral-900 px-5 py-2.5 text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSubmitting ? "Saving..." : "Save Category"}
+          {isImageUploading
+            ? "Uploading image..."
+            : isSubmitting
+              ? "Saving..."
+              : "Save Category"}
         </button>
       </div>
     </form>

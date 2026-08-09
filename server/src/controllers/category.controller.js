@@ -2,10 +2,12 @@ import Category from "../models/category.model.js";
 
 const createCategory = async (req, res) => {
   try {
-    const { name, description = "", displayOrder = 0 } = req.body;
-    const existingCategory = await Category.findOne({ name });
+    const { name, description = "", displayOrder = 0, image } = req.body;
+    const existingCategory = await Category.findOne({
+      name: { $regex: new RegExp(`^${name}$`, "i") },
+    });
     if (existingCategory) {
-      return res.status(400).json({
+      return res.status(409).json({
         success: false,
         message: "Category already exists",
       });
@@ -14,7 +16,7 @@ const createCategory = async (req, res) => {
       name,
       description,
       displayOrder,
-      image: "",
+      image: image ?? { url: "", publicId: "" },
     });
 
     res.status(201).json({
@@ -52,7 +54,6 @@ const getCategories = async (req, res) => {
   }
 };
 
-
 const getCategoryById = async (req, res) => {
   try {
     const { categoryId } = req.params;
@@ -77,13 +78,12 @@ const getCategoryById = async (req, res) => {
   }
 };
 
-
 const updateCategory = async (req, res) => {
   try {
     const { categoryId } = req.params;
     const { name, description, displayOrder, image, isActive } = req.body;
 
-    const category = await Category.findById(categoryId)
+    const category = await Category.findById(categoryId);
 
     if (!category) {
       return res.status(404).json({
@@ -91,11 +91,26 @@ const updateCategory = async (req, res) => {
         message: "Category not found",
       });
     }
-    category.name = name ?? category.name
-    category.description = description ?? category.description
-    category.displayOrder = displayOrder ?? category.displayOrder
-    category.image = image ?? category.image
-    category.isActive = isActive ?? category.isActive
+
+    if (name) {
+      const duplicateCategory = await Category.findOne({
+        _id: { $ne: categoryId },
+        name: { $regex: new RegExp(`^${name}$`, "i") },
+      });
+
+      if (duplicateCategory) {
+        return res.status(409).json({
+          success: false,
+          message: "Category already exists.",
+        });
+      }
+    }
+
+    category.name = name ?? category.name;
+    category.description = description ?? category.description;
+    category.displayOrder = displayOrder ?? category.displayOrder;
+    category.image = image ?? category.image;
+    category.isActive = isActive ?? category.isActive;
 
     await category.save();
 
@@ -104,11 +119,9 @@ const updateCategory = async (req, res) => {
       message: "Category updated successfully.",
       data: category,
     });
-
-
   } catch (error) {
     console.error("Update Category error:", error);
-    if (error.code === 11000){
+    if (error.code === 11000) {
       return res.status(409).json({
         success: false,
         message: "Category already exists.",
@@ -120,7 +133,6 @@ const updateCategory = async (req, res) => {
     });
   }
 };
-
 
 const deleteCategory = async (req, res) => {
   try {
@@ -141,7 +153,6 @@ const deleteCategory = async (req, res) => {
       success: true,
       message: "Category deleted successfully.",
     });
-
   } catch (error) {
     console.error("Delete Category error:", error);
     return res.status(500).json({
@@ -151,4 +162,10 @@ const deleteCategory = async (req, res) => {
   }
 };
 
-export { createCategory, getCategories, updateCategory, deleteCategory, getCategoryById };
+export {
+  createCategory,
+  getCategories,
+  updateCategory,
+  deleteCategory,
+  getCategoryById,
+};
