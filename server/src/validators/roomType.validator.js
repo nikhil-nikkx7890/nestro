@@ -11,6 +11,13 @@ export const roomTypeSchema = z
         /^[A-Za-z0-9\s&()'/-]+$/,
         "Room type name contains invalid characters.",
       ),
+    image: z
+      .object({
+        url: z.string().trim().optional().default(""),
+        publicId: z.string().trim().optional().default(""),
+      })
+      .optional()
+      .default({ url: "", publicId: "" }),
     isActive: z.boolean(),
   })
   .strict();

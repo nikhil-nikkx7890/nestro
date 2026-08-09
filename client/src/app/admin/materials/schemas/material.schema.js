@@ -10,5 +10,9 @@ export const materialSchema = z.object({
       /^[A-Za-z0-9\s&()'/-]+$/,
       "Material name contains invalid characters.",
     ),
+  image: z.object({
+    url: z.string().trim().optional().default(""),
+    publicId: z.string().trim().optional().default(""),
+  }),
   isActive: z.boolean(),
 });

@@ -3,7 +3,7 @@ import { validateObjectId } from "../middlewares/validateObjectId.js";
 
 export const createMaterial = async (req, res) => {
   try {
-    const { name, isActive } = req.body;
+    const { name, isActive, image } = req.body;
 
     const existingMaterial = await Material.findOne({
       name: { $regex: new RegExp(`^${name}$`, "i") },
@@ -19,6 +19,7 @@ export const createMaterial = async (req, res) => {
     const material = await Material.create({
       name,
       isActive,
+      image: image ?? { url: "", publicId: "" },
     });
     return res.status(201).json({
       success: true,
@@ -78,7 +79,7 @@ export const getMaterialById = async (req, res) => {
 export const updateMaterial = async (req, res) => {
   try {
     const { materialId } = req.params;
-    const { name, isActive } = req.body;
+    const { name, isActive, image } = req.body;
 
     const material = await Material.findById(materialId);
     if (!material) {
@@ -99,6 +100,7 @@ export const updateMaterial = async (req, res) => {
     }
     material.name = name;
     material.isActive = isActive;
+    material.image = image ?? material.image;
 
     await material.save();
     return res.status(200).json({

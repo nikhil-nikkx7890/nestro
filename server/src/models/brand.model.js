@@ -1,15 +1,15 @@
 import mongoose from "mongoose";
 import slugify from "../utils/slugify.js";
 
-const roomTypeSchema = new mongoose.Schema(
+const brandSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, "Room type name is required"],
+      required: [true, "Brand name is required"],
       unique: true,
       trim: true,
-      minlength: [2, "Room type name must be at least 2 characters"],
-      maxlength: [50, "Room type name cannot exceed 50 characters"],
+      minlength: [2, "Brand name must be at least 2 characters"],
+      maxlength: [50, "Brand name cannot exceed 50 characters"],
     },
     slug: {
       type: String,
@@ -26,16 +26,14 @@ const roomTypeSchema = new mongoose.Schema(
       default: true,
     },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
-roomTypeSchema.pre("save", function () {
+
+brandSchema.pre("save", function () {
   if (this.isModified("name")) {
     this.slug = slugify(this.name);
   }
 });
 
-const RoomType = mongoose.model("RoomType", roomTypeSchema);
-
-export default RoomType;
+const Brand = mongoose.model("Brand", brandSchema);
+export default Brand;

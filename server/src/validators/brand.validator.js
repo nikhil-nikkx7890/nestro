@@ -11,6 +11,13 @@ export const brandSchema = z
         /^[A-Za-z0-9\s&()'/-]+$/,
         "Brand name contains invalid characters.",
       ),
+    image: z
+      .object({
+        url: z.string().trim().optional().default(""),
+        publicId: z.string().trim().optional().default(""),
+      })
+      .optional()
+      .default({ url: "", publicId: "" }),
     isActive: z.boolean(),
   })
   .strict();

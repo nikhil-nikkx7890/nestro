@@ -2,7 +2,7 @@ import roomTypeModel from "../models/roomType.model.js";
 
 const createRoomType = async (req, res) => {
   try {
-    const { name, isActive } = req.body;
+    const { name, isActive, image } = req.body;
     const roomTypeExists = await roomTypeModel.findOne({
       name: { $regex: new RegExp(`^${name}$`, "i") },
     });
@@ -16,6 +16,7 @@ const createRoomType = async (req, res) => {
     const roomType = await roomTypeModel.create({
       name,
       isActive,
+      image: image ?? { url: "", publicId: "" },
     });
     res.status(201).json({
       success: true,
@@ -76,7 +77,7 @@ const getRoomTypeById = async (req, res) => {
 const updateRoomType = async (req, res) => {
   try {
     const { roomTypeId } = req.params;
-    const { name, isActive } = req.body;
+    const { name, isActive, image } = req.body;
     const roomType = await roomTypeModel.findById(roomTypeId);
     if (!roomType) {
       return res.status(404).json({
@@ -99,6 +100,7 @@ const updateRoomType = async (req, res) => {
 
     roomType.name = name;
     roomType.isActive = isActive;
+    roomType.image = image ?? roomType.image;
     //  save document ( this triggers the pre("save") middleware to update the slug
     await roomType.save();
     res.status(200).json({
