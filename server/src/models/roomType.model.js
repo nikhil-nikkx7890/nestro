@@ -8,7 +8,6 @@ const roomTypeSchema = new mongoose.Schema(
             required: [true, "Room type name is required"],
             unique: true,
             trim: true,
-            lowercase: true,
             minlength: [2, "Room type name must be at least 2 characters"],
             maxlength: [50, "Room type name cannot exceed 50 characters"]
         },
