@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
-import { toast } from "sonner";
 
 import MaterialTable from "./components/MaterialTable";
 import MaterialModal from "./components/MaterialModal";
@@ -16,126 +14,32 @@ import {
 } from "@/services/material.service";
 
 import { toTitleCase } from "@/utils/formatters";
+import { useCrud } from "@/hooks/useCrud";
 
 export default function MaterialsPage() {
-  const [materials, setMaterials] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedMaterial, setSelectedMaterial] = useState(null);
-
-  const fetchMaterials = async () => {
-    try {
-      setLoading(true);
-
-      const response = await getMaterials();
-
-      setMaterials(response.data);
-      setError("");
-    } catch (error) {
-      console.error(error);
-      setError("Failed to fetch Materials.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchMaterials();
-  }, []);
-
-  const handleOpenCreateModal = () => {
-    setSelectedMaterial(null);
-    setIsModalOpen(true);
-  };
-
-  const handleEditMaterial = (material) => {
-    setSelectedMaterial(material);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedMaterial(null);
-    setIsModalOpen(false);
-  };
-
-  const handleOpenDeleteModal = (material) => {
-    setSelectedMaterial(material);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleCloseDeleteModal = () => {
-    setSelectedMaterial(null);
-    setIsDeleteModalOpen(false);
-  };
-
-  const handleCreateMaterial = async (formData) => {
-    try {
-      setIsSubmitting(true);
-
-      await createMaterial(formData);
-
-      toast.success("Material created successfully.");
-
-      await fetchMaterials();
-
-      handleCloseModal();
-    } catch (error) {
-      console.error(error);
-
-      toast.error(
-        error.response?.data?.message || "Failed to create Material.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdateMaterial = async (formData) => {
-    try {
-      setIsSubmitting(true);
-
-      await updateMaterial(selectedMaterial._id, formData);
-
-      toast.success("Material updated successfully.");
-
-      await fetchMaterials();
-
-      handleCloseModal();
-    } catch (error) {
-      console.error(error);
-
-      toast.error(
-        error.response?.data?.message || "Failed to update Material.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeleteMaterial = async () => {
-    try {
-      setIsSubmitting(true);
-
-      await deleteMaterial(selectedMaterial._id);
-
-      toast.success("Material deleted successfully.");
-
-      await fetchMaterials();
-
-      handleCloseDeleteModal();
-    } catch (error) {
-      console.error(error);
-
-      toast.error(
-        error.response?.data?.message || "Failed to delete Material.",
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const {
+    items: materials,
+    selectedItem: selectedMaterial,
+    loading,
+    error,
+    isSubmitting,
+    isModalOpen,
+    isDeleteModalOpen,
+    openCreateModal,
+    closeModal,
+    handleEdit,
+    openDeleteModal,
+    closeDeleteModal,
+    handleCreate,
+    handleUpdate,
+    handleDelete,
+  } = useCrud({
+    list: getMaterials,
+    create: createMaterial,
+    update: updateMaterial,
+    remove: deleteMaterial,
+    entityName: "Material",
+  });
 
   return (
     <div className="space-y-8">
@@ -149,7 +53,7 @@ export default function MaterialsPage() {
         </div>
 
         <button
-          onClick={handleOpenCreateModal}
+          onClick={openCreateModal}
           className="flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
         >
           <Plus size={18} />
@@ -161,25 +65,23 @@ export default function MaterialsPage() {
         materials={materials}
         loading={loading}
         error={error}
-        openModal={handleOpenCreateModal}
-        onEdit={handleEditMaterial}
-        onDelete={handleOpenDeleteModal}
+        openModal={openCreateModal}
+        onEdit={handleEdit}
+        onDelete={openDeleteModal}
       />
 
       <MaterialModal
         isOpen={isModalOpen}
-        onClose={handleCloseModal}
+        onClose={closeModal}
         material={selectedMaterial}
-        onSubmit={
-          selectedMaterial ? handleUpdateMaterial : handleCreateMaterial
-        }
+        onSubmit={selectedMaterial ? handleUpdate : handleCreate}
         isSubmitting={isSubmitting}
       />
 
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
-        onClose={handleCloseDeleteModal}
-        onConfirm={handleDeleteMaterial}
+        onClose={closeDeleteModal}
+        onConfirm={handleDelete}
         title="Delete Material"
         message={`Are you sure you want to delete "${toTitleCase(selectedMaterial?.name)}"?`}
         confirmText="Delete"

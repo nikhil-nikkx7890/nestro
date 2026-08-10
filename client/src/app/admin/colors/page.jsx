@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
-import { toast } from "sonner";
 
 import ColorTable from "./components/ColorTable";
 import ColorModal from "./components/ColorModal";
@@ -16,120 +14,32 @@ import {
 } from "@/services/color.service";
 
 import { toTitleCase } from "@/utils/formatters";
+import { useCrud } from "@/hooks/useCrud";
 
 export default function ColorsPage() {
-  const [colors, setColors] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedColor, setSelectedColor] = useState(null);
-
-  const fetchColors = async () => {
-    try {
-      setLoading(true);
-
-      const response = await getColors();
-
-      setColors(response.data);
-      setError("");
-    } catch (error) {
-      console.error(error);
-      setError("Failed to fetch Colors.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchColors();
-  }, []);
-
-  const handleOpenCreateModal = () => {
-    setSelectedColor(null);
-    setIsModalOpen(true);
-  };
-
-  const handleEditColor = (color) => {
-    setSelectedColor(color);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedColor(null);
-    setIsModalOpen(false);
-  };
-
-  const handleOpenDeleteModal = (color) => {
-    setSelectedColor(color);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleCloseDeleteModal = () => {
-    setSelectedColor(null);
-    setIsDeleteModalOpen(false);
-  };
-
-  const handleCreateColor = async (formData) => {
-    try {
-      setIsSubmitting(true);
-
-      await createColor(formData);
-
-      toast.success("Color created successfully.");
-
-      await fetchColors();
-
-      handleCloseModal();
-    } catch (error) {
-      console.error(error);
-
-      toast.error(error.response?.data?.message || "Failed to create Color.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleUpdateColor = async (formData) => {
-    try {
-      setIsSubmitting(true);
-
-      await updateColor(selectedColor._id, formData);
-
-      toast.success("Color updated successfully.");
-
-      await fetchColors();
-
-      handleCloseModal();
-    } catch (error) {
-      console.error(error);
-
-      toast.error(error.response?.data?.message || "Failed to update Color.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleDeleteColor = async () => {
-    try {
-      setIsSubmitting(true);
-
-      await deleteColor(selectedColor._id);
-
-      toast.success("Color deleted successfully.");
-
-      await fetchColors();
-
-      handleCloseDeleteModal();
-    } catch (error) {
-      console.error(error);
-
-      toast.error(error.response?.data?.message || "Failed to delete Color.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const {
+    items: colors,
+    selectedItem: selectedColor,
+    loading,
+    error,
+    isSubmitting,
+    isModalOpen,
+    isDeleteModalOpen,
+    openCreateModal,
+    closeModal,
+    handleEdit,
+    openDeleteModal,
+    closeDeleteModal,
+    handleCreate,
+    handleUpdate,
+    handleDelete,
+  } = useCrud({
+    list: getColors,
+    create: createColor,
+    update: updateColor,
+    remove: deleteColor,
+    entityName: "Color",
+  });
 
   return (
     <div className="space-y-8">
@@ -141,7 +51,7 @@ export default function ColorsPage() {
         </div>
 
         <button
-          onClick={handleOpenCreateModal}
+          onClick={openCreateModal}
           className="flex items-center gap-2 rounded-xl bg-neutral-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
         >
           <Plus size={18} />
@@ -153,23 +63,23 @@ export default function ColorsPage() {
         colors={colors}
         loading={loading}
         error={error}
-        openModal={handleOpenCreateModal}
-        onEdit={handleEditColor}
-        onDelete={handleOpenDeleteModal}
+        openModal={openCreateModal}
+        onEdit={handleEdit}
+        onDelete={openDeleteModal}
       />
 
       <ColorModal
         isOpen={isModalOpen}
-        onClose={handleCloseModal}
+        onClose={closeModal}
         color={selectedColor}
-        onSubmit={selectedColor ? handleUpdateColor : handleCreateColor}
+        onSubmit={selectedColor ? handleUpdate : handleCreate}
         isSubmitting={isSubmitting}
       />
 
       <DeleteConfirmationModal
         isOpen={isDeleteModalOpen}
-        onClose={handleCloseDeleteModal}
-        onConfirm={handleDeleteColor}
+        onClose={closeDeleteModal}
+        onConfirm={handleDelete}
         title="Delete Color"
         message={`Are you sure you want to delete "${toTitleCase(selectedColor?.name)}"?`}
         confirmText="Delete"
