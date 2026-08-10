@@ -6,12 +6,7 @@ import CategoryTable from "./components/CategoryTable";
 import CategoryModal from "./components/CategoryModal";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 
-import {
-  getCategories,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-} from "@/services/category.service";
+import { categoryService } from "@/services/category.service";
 
 import { useCrud } from "@/hooks/useCrud";
 
@@ -33,10 +28,7 @@ export default function CategoriesPage() {
     handleUpdate,
     handleDelete,
   } = useCrud({
-    list: getCategories,
-    create: createCategory,
-    update: updateCategory,
-    remove: deleteCategory,
+    ...categoryService,
     entityName: "Category",
   });
 

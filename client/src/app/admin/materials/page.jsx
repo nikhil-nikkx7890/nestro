@@ -6,12 +6,7 @@ import MaterialTable from "./components/MaterialTable";
 import MaterialModal from "./components/MaterialModal";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 
-import {
-  createMaterial,
-  deleteMaterial,
-  getMaterials,
-  updateMaterial,
-} from "@/services/material.service";
+import { materialService } from "@/services/material.service";
 
 import { toTitleCase } from "@/utils/formatters";
 import { useCrud } from "@/hooks/useCrud";
@@ -34,10 +29,7 @@ export default function MaterialsPage() {
     handleUpdate,
     handleDelete,
   } = useCrud({
-    list: getMaterials,
-    create: createMaterial,
-    update: updateMaterial,
-    remove: deleteMaterial,
+    ...materialService,
     entityName: "Material",
   });
 

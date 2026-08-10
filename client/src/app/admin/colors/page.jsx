@@ -6,12 +6,7 @@ import ColorTable from "./components/ColorTable";
 import ColorModal from "./components/ColorModal";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 
-import {
-  createColor,
-  deleteColor,
-  getColors,
-  updateColor,
-} from "@/services/color.service";
+import { colorService } from "@/services/color.service";
 
 import { toTitleCase } from "@/utils/formatters";
 import { useCrud } from "@/hooks/useCrud";
@@ -34,10 +29,7 @@ export default function ColorsPage() {
     handleUpdate,
     handleDelete,
   } = useCrud({
-    list: getColors,
-    create: createColor,
-    update: updateColor,
-    remove: deleteColor,
+    ...colorService,
     entityName: "Color",
   });
 

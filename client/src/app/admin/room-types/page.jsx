@@ -6,12 +6,7 @@ import RoomTypeTable from "./components/RoomTypeTable";
 import RoomTypeModal from "@/app/admin/room-types/components/RoomTypeModal";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 
-import {
-  createRoomType,
-  deleteRoomType,
-  getRoomTypes,
-  updateRoomType,
-} from "@/services/roomType.service";
+import { roomTypeService } from "@/services/roomType.service";
 
 import { toTitleCase } from "@/utils/formatters";
 import { useCrud } from "@/hooks/useCrud";
@@ -34,10 +29,7 @@ export default function RoomTypesPage() {
     handleUpdate,
     handleDelete,
   } = useCrud({
-    list: getRoomTypes,
-    create: createRoomType,
-    update: updateRoomType,
-    remove: deleteRoomType,
+    ...roomTypeService,
     entityName: "Room Type",
   });
 

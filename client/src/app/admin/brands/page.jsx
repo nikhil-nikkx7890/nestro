@@ -6,12 +6,7 @@ import BrandTable from "./components/BrandTable";
 import BrandModal from "./components/BrandModal";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 
-import {
-  createBrand,
-  deleteBrand,
-  getBrands,
-  updateBrand,
-} from "@/services/brand.service";
+import { brandService } from "@/services/brand.service";
 
 import { toTitleCase } from "@/utils/formatters";
 import { useCrud } from "@/hooks/useCrud";
@@ -34,10 +29,7 @@ export default function BrandsPage() {
     handleUpdate,
     handleDelete,
   } = useCrud({
-    list: getBrands,
-    create: createBrand,
-    update: updateBrand,
-    remove: deleteBrand,
+    ...brandService,
     entityName: "Brand",
   });
 
