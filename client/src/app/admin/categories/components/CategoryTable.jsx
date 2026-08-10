@@ -3,7 +3,7 @@
 import { Search } from "lucide-react";
 
 import CategoryRow from "./CategoryRow";
-import EmptyState from "./EmptyState";
+import EmptyState from "@/components/ui/EmptyState";
 
 export default function CategoryTable({
     categories,
@@ -47,7 +47,12 @@ export default function CategoryTable({
             </div>
 
             {categories.length === 0 ? (
-                <EmptyState openModal={openModal} />
+                <EmptyState
+                    openModal={openModal}
+                    title="No Categories Found"
+                    message="Create your first furniture category."
+                    buttonLabel="Add Category"
+                />
             ) : (
                 <table className="w-full">
                     <thead>

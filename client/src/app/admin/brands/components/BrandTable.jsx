@@ -3,7 +3,7 @@
 import { Search } from "lucide-react";
 
 import BrandRow from "./BrandRow";
-import EmptyState from "./EmptyState";
+import EmptyState from "@/components/ui/EmptyState";
 
 export default function BrandTable({
                                        brands,
@@ -49,7 +49,12 @@ export default function BrandTable({
             </div>
 
             {brands.length === 0 ? (
-                <EmptyState openModal={openModal} />
+                <EmptyState
+                    openModal={openModal}
+                    title="No Brands Found"
+                    message="Create your first Brand."
+                    buttonLabel="Add Brand"
+                />
             ) : (
                 <table className="w-full">
                     <thead>

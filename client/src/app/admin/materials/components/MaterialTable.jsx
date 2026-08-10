@@ -3,7 +3,7 @@
 import { Search } from "lucide-react";
 
 import MaterialRow from "./MaterialRow";
-import EmptyState from "./EmptyState";
+import EmptyState from "@/components/ui/EmptyState";
 
 export default function MaterialTable({
   materials,
@@ -47,7 +47,12 @@ export default function MaterialTable({
       </div>
 
       {materials.length === 0 ? (
-        <EmptyState openModal={openModal} />
+        <EmptyState
+          openModal={openModal}
+          title="No Materials Found"
+          message="Create your first Material."
+          buttonLabel="Add Material"
+        />
       ) : (
         <table className="w-full">
           <thead>

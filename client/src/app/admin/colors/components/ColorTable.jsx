@@ -3,7 +3,7 @@
 import { Search } from "lucide-react";
 
 import ColorRow from "./ColorRow";
-import EmptyState from "./EmptyState";
+import EmptyState from "@/components/ui/EmptyState";
 
 export default function ColorTable({
   colors,
@@ -47,7 +47,12 @@ export default function ColorTable({
       </div>
 
       {colors.length === 0 ? (
-        <EmptyState openModal={openModal} />
+        <EmptyState
+          openModal={openModal}
+          title="No Colors Found"
+          message="Create your first Color."
+          buttonLabel="Add Color"
+        />
       ) : (
         <table className="w-full">
           <thead>

@@ -3,7 +3,7 @@
 import { Search } from "lucide-react";
 
 import RoomTypeRow from "./RoomTypeRow";
-import EmptyState from "./EmptyState";
+import EmptyState from "@/components/ui/EmptyState";
 
 export default function RoomTypeTable({
     roomTypes,
@@ -48,7 +48,12 @@ export default function RoomTypeTable({
             </div>
 
             {roomTypes.length === 0 ? (
-                <EmptyState openModal={openModal} />
+                <EmptyState
+                    openModal={openModal}
+                    title="No Room Types Found"
+                    message="Create your first Room Type."
+                    buttonLabel="Add Room Type"
+                />
             ) : (
                 <table className="w-full">
                     <thead>
