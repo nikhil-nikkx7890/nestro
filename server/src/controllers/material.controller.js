@@ -1,5 +1,4 @@
 import Material from "../models/material.model.js";
-import { validateObjectId } from "../middlewares/validateObjectId.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
 

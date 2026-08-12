@@ -1,5 +1,4 @@
 import Brand from "../models/brand.model.js";
-import { validateObjectId } from "../middlewares/validateObjectId.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
 
@@ -51,7 +50,6 @@ export const getAllBrands = async (req, res) => {
 
 export const getBrandById = async (req, res) => {
   const { brandId } = req.params;
-  if (!validateObjectId(brandId)) return;
   const brand = await Brand.findById(brandId);
   if (!brand) {
     throw new AppError("Brand not found", 404);
@@ -65,7 +63,6 @@ export const getBrandById = async (req, res) => {
 export const updateBrand = async (req, res) => {
   const { brandId } = req.params;
   const { name, isActive, image } = req.body;
-  if (!validateObjectId(brandId)) return;
   const brand = await Brand.findById(brandId);
   if (!brand) {
     throw new AppError("Brand not found", 404);
@@ -92,7 +89,6 @@ export const updateBrand = async (req, res) => {
 
 export const deleteBrand = async (req, res) => {
   const { brandId } = req.params;
-  if (!validateObjectId(brandId)) return;
   const brand = await Brand.findById(brandId);
   if (!brand) {
     throw new AppError("Brand not found", 404);
