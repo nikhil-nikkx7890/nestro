@@ -6,6 +6,7 @@ import brandRoutes from "./routes/brand.routes.js";
 import materialRoutes from "./routes/material.routes.js";
 import colorRoutes from "./routes/color.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
+import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
 
@@ -25,5 +26,7 @@ app.get("/", (req, res) => {
     message: "Nestro backend api is running successfully....",
   });
 });
+
+app.use(errorHandler);
 
 export default app;

@@ -1,159 +1,105 @@
 import Material from "../models/material.model.js";
 import { validateObjectId } from "../middlewares/validateObjectId.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
+import AppError from "../utils/AppError.js";
 
 export const createMaterial = async (req, res) => {
-  try {
-    const { name, isActive, image } = req.body;
+  const { name, isActive, image } = req.body;
 
-    const existingMaterial = await Material.findOne({
-      name: { $regex: new RegExp(`^${name}$`, "i") },
-    });
+  const existingMaterial = await Material.findOne({
+    name: { $regex: new RegExp(`^${name}$`, "i") },
+  });
 
-    if (existingMaterial) {
-      return res.status(409).json({
-        success: false,
-        message: "Material already exists!",
-      });
-    }
-
-    const material = await Material.create({
-      name,
-      isActive,
-      image: image ?? { url: "", publicId: "" },
-    });
-    return res.status(201).json({
-      success: true,
-      message: "Material created successfully",
-      data: material,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to create material",
-      error: error.message,
-    });
+  if (existingMaterial) {
+    throw new AppError("Material already exists!", 409);
   }
+
+  const material = await Material.create({
+    name,
+    isActive,
+    image: image ?? { url: "", publicId: "" },
+  });
+  return res.status(201).json({
+    success: true,
+    message: "Material created successfully",
+    data: material,
+  });
 };
 
 export const getAllMaterials = async (req, res) => {
-  try {
-    const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
-      searchableFields: ["name"],
-      defaultSortBy: "createdAt",
-      defaultSortOrder: "desc",
-    });
+  const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
+    searchableFields: ["name"],
+    defaultSortBy: "createdAt",
+    defaultSortOrder: "desc",
+  });
 
-    const [materials, total] = await Promise.all([
-      Material.find(filter).sort(sort).skip(skip).limit(limit),
-      Material.countDocuments(filter),
-    ]);
+  const [materials, total] = await Promise.all([
+    Material.find(filter).sort(sort).skip(skip).limit(limit),
+    Material.countDocuments(filter),
+  ]);
 
-    return res.status(200).json({
-      success: true,
-      data: materials,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to get all materials",
-      error: error.message,
-    });
-  }
+  return res.status(200).json({
+    success: true,
+    data: materials,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  });
 };
 
 export const getMaterialById = async (req, res) => {
-  try {
-    const { materialId } = req.params;
+  const { materialId } = req.params;
 
-    const material = await Material.findById(materialId);
-    if (!material) {
-      return res.status(404).json({
-        success: false,
-        message: "Material not found!",
-      });
-    }
-    return res.status(200).json({
-      success: true,
-      data: material,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to get material",
-      error: error.message,
-    });
+  const material = await Material.findById(materialId);
+  if (!material) {
+    throw new AppError("Material not found!", 404);
   }
+  return res.status(200).json({
+    success: true,
+    data: material,
+  });
 };
 
 export const updateMaterial = async (req, res) => {
-  try {
-    const { materialId } = req.params;
-    const { name, isActive, image } = req.body;
+  const { materialId } = req.params;
+  const { name, isActive, image } = req.body;
 
-    const material = await Material.findById(materialId);
-    if (!material) {
-      return res.status(404).json({
-        success: false,
-        message: "Material not found!",
-      });
-    }
-    const duplicateMaterial = await Material.findOne({
-      _id: { $ne: materialId },
-      name: { $regex: new RegExp(`^${name}$`, "i") },
-    });
-    if (duplicateMaterial) {
-      return res.status(409).json({
-        success: false,
-        message: "Material already exists!",
-      });
-    }
-    material.name = name;
-    material.isActive = isActive;
-    material.image = image ?? material.image;
-
-    await material.save();
-    return res.status(200).json({
-      success: true,
-      message: "Material updated successfully",
-      data: material,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update material",
-      error: error.message,
-    });
+  const material = await Material.findById(materialId);
+  if (!material) {
+    throw new AppError("Material not found!", 404);
   }
+  const duplicateMaterial = await Material.findOne({
+    _id: { $ne: materialId },
+    name: { $regex: new RegExp(`^${name}$`, "i") },
+  });
+  if (duplicateMaterial) {
+    throw new AppError("Material already exists!", 409);
+  }
+  material.name = name;
+  material.isActive = isActive;
+  material.image = image ?? material.image;
+
+  await material.save();
+  return res.status(200).json({
+    success: true,
+    message: "Material updated successfully",
+    data: material,
+  });
 };
 
 export const deleteMaterial = async (req, res) => {
-  try {
-    const { materialId } = req.params;
+  const { materialId } = req.params;
 
-    const material = await Material.findById(materialId);
-    if (!material) {
-      return res.status(404).json({
-        success: false,
-        message: "Material not found!",
-      });
-    }
-    await material.deleteOne();
-    return res.status(200).json({
-      success: true,
-      message: "Material deleted successfully",
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Failed to delete material",
-      error: error.message,
-    });
+  const material = await Material.findById(materialId);
+  if (!material) {
+    throw new AppError("Material not found!", 404);
   }
+  await material.deleteOne();
+  return res.status(200).json({
+    success: true,
+    message: "Material deleted successfully",
+  });
 };

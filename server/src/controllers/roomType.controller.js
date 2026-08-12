@@ -1,160 +1,106 @@
 import roomTypeModel from "../models/roomType.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
+import AppError from "../utils/AppError.js";
 
 const createRoomType = async (req, res) => {
-  try {
-    const { name, isActive, image } = req.body;
-    const roomTypeExists = await roomTypeModel.findOne({
-      name: { $regex: new RegExp(`^${name}$`, "i") },
-    });
-    if (roomTypeExists) {
-      return res.status(409).json({
-        success: false,
-        message: `Room with name "${name}" already exists`,
-      });
-    }
-
-    const roomType = await roomTypeModel.create({
-      name,
-      isActive,
-      image: image ?? { url: "", publicId: "" },
-    });
-    res.status(201).json({
-      success: true,
-      message: "Room type created successfully",
-      data: roomType,
-    });
-  } catch (error) {
-    console.error("Error creating roomType", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  const { name, isActive, image } = req.body;
+  const roomTypeExists = await roomTypeModel.findOne({
+    name: { $regex: new RegExp(`^${name}$`, "i") },
+  });
+  if (roomTypeExists) {
+    throw new AppError(`Room with name "${name}" already exists`, 409);
   }
+
+  const roomType = await roomTypeModel.create({
+    name,
+    isActive,
+    image: image ?? { url: "", publicId: "" },
+  });
+  res.status(201).json({
+    success: true,
+    message: "Room type created successfully",
+    data: roomType,
+  });
 };
 
 const getAllRoomTypes = async (req, res) => {
-  try {
-    const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
-      searchableFields: ["name"],
-      defaultSortBy: "createdAt",
-      defaultSortOrder: "desc",
-    });
+  const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
+    searchableFields: ["name"],
+    defaultSortBy: "createdAt",
+    defaultSortOrder: "desc",
+  });
 
-    const [allRoomTypes, total] = await Promise.all([
-      roomTypeModel.find(filter).sort(sort).skip(skip).limit(limit),
-      roomTypeModel.countDocuments(filter),
-    ]);
+  const [allRoomTypes, total] = await Promise.all([
+    roomTypeModel.find(filter).sort(sort).skip(skip).limit(limit),
+    roomTypeModel.countDocuments(filter),
+  ]);
 
-    res.status(200).json({
-      success: true,
-      message: "All rooms types fetched successfully",
-      data: allRoomTypes,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    console.error("Error getting all roomTypes", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
-  }
+  res.status(200).json({
+    success: true,
+    message: "All rooms types fetched successfully",
+    data: allRoomTypes,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  });
 };
 
 const getRoomTypeById = async (req, res) => {
-  try {
-    const { roomTypeId } = req.params;
-    const roomType = await roomTypeModel.findById(roomTypeId);
-    if (!roomType) {
-      return res.status(404).json({
-        success: false,
-        message: `Room type not found`,
-      });
-    }
-    res.status(200).json({
-      success: true,
-      message: "Room type fetched successfully",
-      data: roomType,
-    });
-  } catch (error) {
-    console.error("Error getting Room Type ", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  const { roomTypeId } = req.params;
+  const roomType = await roomTypeModel.findById(roomTypeId);
+  if (!roomType) {
+    throw new AppError(`Room type not found`, 404);
   }
+  res.status(200).json({
+    success: true,
+    message: "Room type fetched successfully",
+    data: roomType,
+  });
 };
 
 const updateRoomType = async (req, res) => {
-  try {
-    const { roomTypeId } = req.params;
-    const { name, isActive, image } = req.body;
-    const roomType = await roomTypeModel.findById(roomTypeId);
-    if (!roomType) {
-      return res.status(404).json({
-        success: false,
-        message: `Room type not found`,
-      });
-    }
-    // Check for duplicate name ( excluding the current room type)
-    const roomTypeExists = await roomTypeModel.findOne({
-      name: { $regex: new RegExp(`^${name}$`, "i") },
-      _id: { $ne: roomTypeId },
-    });
-    if (roomTypeExists) {
-      return res.status(409).json({
-        success: false,
-        message: `Room type with name "${name}" already exists`,
-      });
-    }
-    // update fields
-
-    roomType.name = name;
-    roomType.isActive = isActive;
-    roomType.image = image ?? roomType.image;
-    //  save document ( this triggers the pre("save") middleware to update the slug
-    await roomType.save();
-    res.status(200).json({
-      success: true,
-      message: "Room type updated successfully",
-      data: roomType,
-    });
-  } catch (error) {
-    console.error("Error updating roomType", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  const { roomTypeId } = req.params;
+  const { name, isActive, image } = req.body;
+  const roomType = await roomTypeModel.findById(roomTypeId);
+  if (!roomType) {
+    throw new AppError(`Room type not found`, 404);
   }
+  // Check for duplicate name ( excluding the current room type)
+  const roomTypeExists = await roomTypeModel.findOne({
+    name: { $regex: new RegExp(`^${name}$`, "i") },
+    _id: { $ne: roomTypeId },
+  });
+  if (roomTypeExists) {
+    throw new AppError(`Room type with name "${name}" already exists`, 409);
+  }
+  // update fields
+
+  roomType.name = name;
+  roomType.isActive = isActive;
+  roomType.image = image ?? roomType.image;
+  //  save document ( this triggers the pre("save") middleware to update the slug
+  await roomType.save();
+  res.status(200).json({
+    success: true,
+    message: "Room type updated successfully",
+    data: roomType,
+  });
 };
 
 const deleteRoomType = async (req, res) => {
-  try {
-    const { roomTypeId } = req.params;
-    const roomType = await roomTypeModel.findById(roomTypeId);
-    if (!roomType) {
-      return res.status(404).json({
-        success: false,
-        message: `Room type not found`,
-      });
-    }
-    await roomType.deleteOne();
-    res.status(200).json({
-      success: true,
-      message: "Room type deleted successfully",
-    });
-  } catch (error) {
-    console.error("Error deleting roomType", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  const { roomTypeId } = req.params;
+  const roomType = await roomTypeModel.findById(roomTypeId);
+  if (!roomType) {
+    throw new AppError(`Room type not found`, 404);
   }
+  await roomType.deleteOne();
+  res.status(200).json({
+    success: true,
+    message: "Room type deleted successfully",
+  });
 };
 
 export {

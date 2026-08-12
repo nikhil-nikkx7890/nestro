@@ -411,17 +411,18 @@ Nestro/
 - ✅ Admin Dashboard
 - ✅ Categories
 - ✅ Room Types
-- ✅ Image Upload
-- ✅ Search, Pagination, Sorting, Filtering
-- ⬜ Products
 - ✅ Brands
 - ✅ Materials
 - ✅ Colors
+- ✅ Image Upload
+- ✅ Search, Pagination, Sorting, Filtering
+- 🟡 Error Handling Improvements (in progress)
 
 ---
 
 ## Phase 2 — Product Management
 
+- Products
 - Product Variants
 - Product Gallery
 - Inventory
@@ -601,6 +602,8 @@ Rather than only focusing on building features, I aim to understand the reasonin
 🟢 Image Upload
 
 🟢 Search, Pagination, Sorting, Filtering
+
+🟡 Error Handling Improvements
 
 ⚪ Products
 

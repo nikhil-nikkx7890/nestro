@@ -1,177 +1,117 @@
 import Category from "../models/category.model.js";
-import {buildQueryFeatures} from "../utils/buildQueryFeatures.js";
+import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
+import AppError from "../utils/AppError.js";
 
 const createCategory = async (req, res) => {
-  try {
-    const { name, description = "", displayOrder = 0, image } = req.body;
-    const existingCategory = await Category.findOne({
-      name: { $regex: new RegExp(`^${name}$`, "i") },
-    });
-    if (existingCategory) {
-      return res.status(409).json({
-        success: false,
-        message: "Category already exists",
-      });
-    }
-    const category = await Category.create({
-      name,
-      description,
-      displayOrder,
-      image: image ?? { url: "", publicId: "" },
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Category created successfully",
-      data: category,
-    });
-  } catch (error) {
-    console.error("Create Category Error:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  const { name, description = "", displayOrder = 0, image } = req.body;
+  const existingCategory = await Category.findOne({
+    name: { $regex: new RegExp(`^${name}$`, "i") },
+  });
+  if (existingCategory) {
+    throw new AppError("Category already exists", 409);
   }
+  const category = await Category.create({
+    name,
+    description,
+    displayOrder,
+    image: image ?? { url: "", publicId: "" },
+  });
+
+  res.status(201).json({
+    success: true,
+    message: "Category created successfully",
+    data: category,
+  });
 };
 
 const getCategories = async (req, res) => {
-  try {
-    const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
-      searchableFields: ["name"],
-      defaultSortBy: "displayOrder",
-      defaultSortOrder: "asc",
-    });
+  const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
+    searchableFields: ["name"],
+    defaultSortBy: "displayOrder",
+    defaultSortOrder: "asc",
+  });
 
-    const [categories, total] = await Promise.all([
-      Category.find(filter).sort(sort).skip(skip).limit(limit),
-      Category.countDocuments(filter),
-    ]);
+  const [categories, total] = await Promise.all([
+    Category.find(filter).sort(sort).skip(skip).limit(limit),
+    Category.countDocuments(filter),
+  ]);
 
-    res.status(200).json({
-      success: true,
-      data: categories,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
-  } catch (error) {
-    console.error("Get Categories Error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch categories.",
-    });
-  }
+  res.status(200).json({
+    success: true,
+    data: categories,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  });
 };
 
 const getCategoryById = async (req, res) => {
-  try {
-    const { categoryId } = req.params;
-    const category = await Category.findById(categoryId);
-    if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: "Category not found",
-      });
-    }
-    return res.status(200).json({
-      success: true,
-      message: "Category fetched successfully.",
-      data: category,
-    });
-  } catch (error) {
-    console.error("Get Category Error:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  const { categoryId } = req.params;
+  const category = await Category.findById(categoryId);
+  if (!category) {
+    throw new AppError("Category not found", 404);
   }
+  return res.status(200).json({
+    success: true,
+    message: "Category fetched successfully.",
+    data: category,
+  });
 };
 
 const updateCategory = async (req, res) => {
-  try {
-    const { categoryId } = req.params;
-    const { name, description, displayOrder, image, isActive } = req.body;
+  const { categoryId } = req.params;
+  const { name, description, displayOrder, image, isActive } = req.body;
 
-    const category = await Category.findById(categoryId);
+  const category = await Category.findById(categoryId);
 
-    if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: "Category not found",
-      });
-    }
-
-    if (name) {
-      const duplicateCategory = await Category.findOne({
-        _id: { $ne: categoryId },
-        name: { $regex: new RegExp(`^${name}$`, "i") },
-      });
-
-      if (duplicateCategory) {
-        return res.status(409).json({
-          success: false,
-          message: "Category already exists.",
-        });
-      }
-    }
-
-    category.name = name ?? category.name;
-    category.description = description ?? category.description;
-    category.displayOrder = displayOrder ?? category.displayOrder;
-    category.image = image ?? category.image;
-    category.isActive = isActive ?? category.isActive;
-
-    await category.save();
-
-    return res.status(200).json({
-      success: true,
-      message: "Category updated successfully.",
-      data: category,
-    });
-  } catch (error) {
-    console.error("Update Category error:", error);
-    if (error.code === 11000) {
-      return res.status(409).json({
-        success: false,
-        message: "Category already exists.",
-      });
-    }
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  if (!category) {
+    throw new AppError("Category not found", 404);
   }
+
+  if (name) {
+    const duplicateCategory = await Category.findOne({
+      _id: { $ne: categoryId },
+      name: { $regex: new RegExp(`^${name}$`, "i") },
+    });
+
+    if (duplicateCategory) {
+      throw new AppError("Category already exists.", 409);
+    }
+  }
+
+  category.name = name ?? category.name;
+  category.description = description ?? category.description;
+  category.displayOrder = displayOrder ?? category.displayOrder;
+  category.image = image ?? category.image;
+  category.isActive = isActive ?? category.isActive;
+
+  await category.save();
+
+  return res.status(200).json({
+    success: true,
+    message: "Category updated successfully.",
+    data: category,
+  });
 };
 
 const deleteCategory = async (req, res) => {
-  try {
-    const { categoryId } = req.params;
+  const { categoryId } = req.params;
 
-    const category = await Category.findById(categoryId);
+  const category = await Category.findById(categoryId);
 
-    if (!category) {
-      return res.status(404).json({
-        success: false,
-        message: "Category not found.",
-      });
-    }
-
-    await category.deleteOne();
-
-    return res.status(200).json({
-      success: true,
-      message: "Category deleted successfully.",
-    });
-  } catch (error) {
-    console.error("Delete Category error:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  if (!category) {
+    throw new AppError("Category not found.", 404);
   }
+
+  await category.deleteOne();
+
+  return res.status(200).json({
+    success: true,
+    message: "Category deleted successfully.",
+  });
 };
 
 export {
