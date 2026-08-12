@@ -28,6 +28,16 @@ export default function MaterialsPage() {
     handleCreate,
     handleUpdate,
     handleDelete,
+    search,
+    setSearch,
+    page,
+    goToPage,
+    pagination,
+    sortBy,
+    sortOrder,
+    handleSort,
+    isActive,
+    handleFilterActive,
   } = useCrud({
     ...materialService,
     entityName: "Material",
@@ -60,6 +70,16 @@ export default function MaterialsPage() {
         openModal={openCreateModal}
         onEdit={handleEdit}
         onDelete={openDeleteModal}
+        search={search}
+        setSearch={setSearch}
+        page={page}
+        setPage={goToPage}
+        pagination={pagination}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        handleSort={handleSort}
+        isActive={isActive}
+        handleFilterActive={handleFilterActive}
       />
 
       <MaterialModal

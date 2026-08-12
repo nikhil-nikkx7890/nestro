@@ -389,14 +389,18 @@ Nestro/
 
 ### Reusable Architecture
 
-- Service Layer Pattern
+- Service Layer Pattern via a Shared Service Factory (`createResourceService`) — every Master Data module's CRUD service is generated from one function instead of hand-written per module
+- Shared CRUD Hook (`useCrud`) — all state, handlers, search/sort/filter/pagination logic for every Master Data admin page lives in one hook
+- Shared Query Builder (`buildQueryFeatures`) — backend search, sort, and filter logic built once and reused across all 5 controllers
+- Shared Search, Sortable Columns, Status Filter, and Pagination UI — one component each, reused across every Master Data table
 - Reusable Delete Confirmation Modal
+- Reusable Empty State Component
 - Shared Axios Instance
 - Reusable Validation Middleware
 - Shared Text Formatter Utilities
-- Reusable CRUD Architecture
 - Feature-based Folder Structure
 - Shared Form Validation Pattern (React Hook Form + Zod)
+- Database Seed Script for local development/testing
 
 ---
 
@@ -407,7 +411,8 @@ Nestro/
 - ✅ Admin Dashboard
 - ✅ Categories
 - ✅ Room Types
-- ⬜ Image Upload
+- ✅ Image Upload
+- ✅ Search, Pagination, Sorting, Filtering
 - ⬜ Products
 - ✅ Brands
 - ✅ Materials
@@ -593,7 +598,9 @@ Rather than only focusing on building features, I aim to understand the reasonin
 
 🟢 Master Data Foundation Complete
 
-⚪ Image Upload
+🟢 Image Upload
+
+🟢 Search, Pagination, Sorting, Filtering
 
 ⚪ Products
 

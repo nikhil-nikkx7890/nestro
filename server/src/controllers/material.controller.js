@@ -1,5 +1,6 @@
 import Material from "../models/material.model.js";
 import { validateObjectId } from "../middlewares/validateObjectId.js";
+import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 
 export const createMaterial = async (req, res) => {
   try {
@@ -37,11 +38,26 @@ export const createMaterial = async (req, res) => {
 
 export const getAllMaterials = async (req, res) => {
   try {
-    const materials = await Material.find();
+    const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
+      searchableFields: ["name"],
+      defaultSortBy: "createdAt",
+      defaultSortOrder: "desc",
+    });
+
+    const [materials, total] = await Promise.all([
+      Material.find(filter).sort(sort).skip(skip).limit(limit),
+      Material.countDocuments(filter),
+    ]);
+
     return res.status(200).json({
       success: true,
-      count: materials.length,
       data: materials,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     return res.status(500).json({

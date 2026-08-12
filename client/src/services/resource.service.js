@@ -2,8 +2,8 @@ import api from "@/lib/axios";
 
 export function createResourceService(endpoint) {
   return {
-    list: async () => {
-      const response = await api.get(endpoint);
+    list: async (params = {}) => {
+      const response = await api.get(endpoint, { params });
       return response.data;
     },
     getById: async (id) => {

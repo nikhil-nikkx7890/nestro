@@ -1,4 +1,5 @@
 import roomTypeModel from "../models/roomType.model.js";
+import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 
 const createRoomType = async (req, res) => {
   try {
@@ -34,12 +35,27 @@ const createRoomType = async (req, res) => {
 
 const getAllRoomTypes = async (req, res) => {
   try {
-    const allRoomTypes = await roomTypeModel.find();
+    const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
+      searchableFields: ["name"],
+      defaultSortBy: "createdAt",
+      defaultSortOrder: "desc",
+    });
+
+    const [allRoomTypes, total] = await Promise.all([
+      roomTypeModel.find(filter).sort(sort).skip(skip).limit(limit),
+      roomTypeModel.countDocuments(filter),
+    ]);
+
     res.status(200).json({
       success: true,
       message: "All rooms types fetched successfully",
-      count: allRoomTypes.length,
       data: allRoomTypes,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     console.error("Error getting all roomTypes", error);

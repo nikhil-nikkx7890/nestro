@@ -1,5 +1,6 @@
 import Brand from "../models/brand.model.js";
 import { validateObjectId } from "../middlewares/validateObjectId.js";
+import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 
 export const createBrand = async (req, res) => {
   try {
@@ -36,11 +37,26 @@ export const createBrand = async (req, res) => {
 
 export const getAllBrands = async (req, res) => {
   try {
-    const brands = await Brand.find();
+    const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
+      searchableFields: ["name"],
+      defaultSortBy: "createdAt",
+      defaultSortOrder: "desc",
+    });
+
+    const [brands, total] = await Promise.all([
+      Brand.find(filter).sort(sort).skip(skip).limit(limit),
+      Brand.countDocuments(filter),
+    ]);
+
     return res.status(200).json({
       success: true,
-      count: brands.length,
       data: brands,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     return res.status(500).json({

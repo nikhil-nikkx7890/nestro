@@ -4,6 +4,9 @@ import { Search } from "lucide-react";
 
 import BrandRow from "./BrandRow";
 import EmptyState from "@/components/ui/EmptyState";
+import Pagination from "@/components/ui/Pagination";
+import SortableHeader from "@/components/ui/SortableHeader";
+import StatusFilter from "@/components/ui/StatusFilter";
 
 export default function BrandTable({
                                        brands,
@@ -12,29 +15,21 @@ export default function BrandTable({
                                        openModal,
                                        onEdit,
                                        onDelete,
+                                       search,
+                                       setSearch,
+                                       pagination,
+                                       page,
+                                       setPage,
+                                       sortBy,
+                                       sortOrder,
+                                       handleSort,
+                                       isActive,
+                                       handleFilterActive,
                                    }) {
-    if (loading) {
-        return (
-            <div className="rounded-2xl border border-neutral-200 bg-white p-10 text-center">
-                Loading Brands...
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-600">
-                {error}
-            </div>
-        );
-    }
-
-    // TODO: Implement search
-
     return (
         <div className="rounded-2xl border border-neutral-200 bg-white shadow-sm">
-            <div className="border-b border-neutral-200 p-6">
-                <div className="relative max-w-sm">
+            <div className="flex flex-col gap-4 border-b border-neutral-200 p-6 sm:flex-row sm:items-center sm:justify-between">
+                <div className="relative max-w-sm flex-1">
                     <Search
                         size={18}
                         className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
@@ -43,12 +38,22 @@ export default function BrandTable({
                     <input
                         type="text"
                         placeholder="Search Brands..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
                         className="w-full rounded-xl border border-neutral-200 bg-neutral-50 py-2.5 pl-10 pr-4 text-sm outline-none transition focus:border-neutral-900 focus:bg-white"
                     />
                 </div>
+
+                <StatusFilter isActive={isActive} onChange={handleFilterActive} />
             </div>
 
-            {brands.length === 0 ? (
+            {loading ? (
+                <div className="p-10 text-center text-neutral-500">
+                    Loading Brands...
+                </div>
+            ) : error ? (
+                <div className="p-10 text-center text-red-600">{error}</div>
+            ) : brands.length === 0 ? (
                 <EmptyState
                     openModal={openModal}
                     title="No Brands Found"
@@ -59,9 +64,13 @@ export default function BrandTable({
                 <table className="w-full">
                     <thead>
                     <tr className="border-b border-neutral-200 text-left">
-                        <th className="px-6 py-4 text-sm font-semibold">
-                            Brand
-                        </th>
+                        <SortableHeader
+                            label="Brand"
+                            field="name"
+                            sortBy={sortBy}
+                            sortOrder={sortOrder}
+                            onSort={handleSort}
+                        />
 
                         <th className="px-6 py-4 text-sm font-semibold">
                             Slug
@@ -71,9 +80,13 @@ export default function BrandTable({
                             Products
                         </th>
 
-                        <th className="px-6 py-4 text-sm font-semibold">
-                            Status
-                        </th>
+                        <SortableHeader
+                            label="Status"
+                            field="isActive"
+                            sortBy={sortBy}
+                            sortOrder={sortOrder}
+                            onSort={handleSort}
+                        />
 
                         <th className="px-6 py-4 text-right text-sm font-semibold">
                             Actions
@@ -93,6 +106,7 @@ export default function BrandTable({
                     </tbody>
                 </table>
             )}
+            <Pagination pagination={pagination} onPageChange={setPage} />
         </div>
     );
 }

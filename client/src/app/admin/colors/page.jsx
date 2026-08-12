@@ -28,6 +28,16 @@ export default function ColorsPage() {
     handleCreate,
     handleUpdate,
     handleDelete,
+    search,
+    setSearch,
+    page,
+    goToPage,
+    pagination,
+    sortBy,
+    sortOrder,
+    handleSort,
+    isActive,
+    handleFilterActive,
   } = useCrud({
     ...colorService,
     entityName: "Color",
@@ -58,6 +68,16 @@ export default function ColorsPage() {
         openModal={openCreateModal}
         onEdit={handleEdit}
         onDelete={openDeleteModal}
+        search={search}
+        setSearch={setSearch}
+        page={page}
+        setPage={goToPage}
+        pagination={pagination}
+        sortBy={sortBy}
+        sortOrder={sortOrder}
+        handleSort={handleSort}
+        isActive={isActive}
+        handleFilterActive={handleFilterActive}
       />
 
       <ColorModal

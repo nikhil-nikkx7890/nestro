@@ -1,4 +1,5 @@
 import Color from "../models/color.model.js";
+import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 
 export const createColor = async (req, res) => {
     try {
@@ -37,12 +38,26 @@ export const createColor = async (req, res) => {
 
 export const getAllColors = async (req, res) => {
     try {
-        const colors = await Color.find();
+        const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
+            searchableFields: ["name"],
+            defaultSortBy: "createdAt",
+            defaultSortOrder: "desc",
+        });
+
+        const [colors, total] = await Promise.all([
+            Color.find(filter).sort(sort).skip(skip).limit(limit),
+            Color.countDocuments(filter),
+        ]);
 
         return res.status(200).json({
             success: true,
-            count: colors.length,
             data: colors,
+            pagination: {
+                total,
+                page,
+                limit,
+                totalPages: Math.ceil(total / limit),
+            },
         });
     } catch (error) {
         return res.status(500).json({

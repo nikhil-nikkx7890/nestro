@@ -1,4 +1,5 @@
 import Category from "../models/category.model.js";
+import {buildQueryFeatures} from "../utils/buildQueryFeatures.js";
 
 const createCategory = async (req, res) => {
   try {
@@ -35,21 +36,32 @@ const createCategory = async (req, res) => {
 
 const getCategories = async (req, res) => {
   try {
-    const categories = await Category.find().sort({
-      displayOrder: 1,
-      createdAt: -1,
+    const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
+      searchableFields: ["name"],
+      defaultSortBy: "displayOrder",
+      defaultSortOrder: "asc",
     });
+
+    const [categories, total] = await Promise.all([
+      Category.find(filter).sort(sort).skip(skip).limit(limit),
+      Category.countDocuments(filter),
+    ]);
+
     res.status(200).json({
       success: true,
-      message: "Categories fetched successfully.",
-      count: categories.length,
       data: categories,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
     });
   } catch (error) {
     console.error("Get Categories Error:", error);
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to fetch categories.",
     });
   }
 };
