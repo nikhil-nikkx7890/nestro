@@ -1,3 +1,5 @@
+import { escapeRegex } from "./escapeRegex.js";
+
 export function buildQueryFeatures(query, options = {} ) {
 
     const {
@@ -12,8 +14,9 @@ export function buildQueryFeatures(query, options = {} ) {
     const filter = {};
 
     if (search){
+        const safeSearch = escapeRegex(search);
         filter.$or = searchableFields.map((field) => ({
-            [field]:{ $regex: search, $options: "i" },
+            [field]:{ $regex: safeSearch, $options: "i" },
         }));
     }
 

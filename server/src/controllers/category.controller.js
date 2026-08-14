@@ -1,11 +1,12 @@
 import Category from "../models/category.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 const createCategory = async (req, res) => {
   const { name, description = "", displayOrder = 0, image } = req.body;
   const existingCategory = await Category.findOne({
-    name: { $regex: new RegExp(`^${name}$`, "i") },
+    name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
   });
   if (existingCategory) {
     throw new AppError("Category already exists", 409);
@@ -74,7 +75,7 @@ const updateCategory = async (req, res) => {
   if (name) {
     const duplicateCategory = await Category.findOne({
       _id: { $ne: categoryId },
-      name: { $regex: new RegExp(`^${name}$`, "i") },
+      name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
     });
 
     if (duplicateCategory) {

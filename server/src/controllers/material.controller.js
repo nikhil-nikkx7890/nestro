@@ -1,12 +1,13 @@
 import Material from "../models/material.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 export const createMaterial = async (req, res) => {
   const { name, isActive, image } = req.body;
 
   const existingMaterial = await Material.findOne({
-    name: { $regex: new RegExp(`^${name}$`, "i") },
+    name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
   });
 
   if (existingMaterial) {
@@ -72,7 +73,7 @@ export const updateMaterial = async (req, res) => {
   }
   const duplicateMaterial = await Material.findOne({
     _id: { $ne: materialId },
-    name: { $regex: new RegExp(`^${name}$`, "i") },
+    name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
   });
   if (duplicateMaterial) {
     throw new AppError("Material already exists!", 409);

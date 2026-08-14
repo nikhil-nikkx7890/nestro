@@ -1,12 +1,13 @@
 import Color from "../models/color.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 export const createColor = async (req, res) => {
     const { name, hexCode, isActive } = req.body;
 
     const existingColor = await Color.findOne({
-        name: { $regex: new RegExp(`^${name}$`, "i") },
+        name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
     });
 
     if (existingColor) {
@@ -81,7 +82,7 @@ export const updateColor = async (req, res) => {
 
     const duplicateColor = await Color.findOne({
         _id: { $ne: colorId },
-        name: { $regex: new RegExp(`^${name}$`, "i") },
+        name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
     });
 
     if (duplicateColor) {

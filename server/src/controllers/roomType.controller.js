@@ -1,11 +1,12 @@
 import roomTypeModel from "../models/roomType.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 const createRoomType = async (req, res) => {
   const { name, isActive, image } = req.body;
   const roomTypeExists = await roomTypeModel.findOne({
-    name: { $regex: new RegExp(`^${name}$`, "i") },
+    name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
   });
   if (roomTypeExists) {
     throw new AppError(`Room with name "${name}" already exists`, 409);
@@ -70,7 +71,7 @@ const updateRoomType = async (req, res) => {
   }
   // Check for duplicate name ( excluding the current room type)
   const roomTypeExists = await roomTypeModel.findOne({
-    name: { $regex: new RegExp(`^${name}$`, "i") },
+    name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
     _id: { $ne: roomTypeId },
   });
   if (roomTypeExists) {

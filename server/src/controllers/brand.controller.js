@@ -1,11 +1,12 @@
 import Brand from "../models/brand.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 export const createBrand = async (req, res) => {
   const { name, isActive, image } = req.body;
   const existingBrand = await Brand.findOne({
-    name: { $regex: new RegExp(`^${name}$`, "i") },
+    name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
   });
 
   if (existingBrand) {
@@ -70,7 +71,7 @@ export const updateBrand = async (req, res) => {
 
   const duplicateBrand = await Brand.findOne({
     _id: { $ne: brandId },
-    name: { $regex: new RegExp(`^${name}$`, "i") },
+    name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
   });
   if (duplicateBrand) {
     throw new AppError("Brand already exists", 409);
