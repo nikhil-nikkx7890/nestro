@@ -28,6 +28,7 @@ const createCategory = async (req, res) => {
 const getCategories = async (req, res) => {
   const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
     searchableFields: ["name"],
+    sortableFields: ["name", "displayOrder", "createdAt", "isActive"],
     defaultSortBy: "displayOrder",
     defaultSortOrder: "asc",
   });

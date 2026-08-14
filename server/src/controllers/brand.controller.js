@@ -28,6 +28,7 @@ export const createBrand = async (req, res) => {
 export const getAllBrands = async (req, res) => {
   const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
     searchableFields: ["name"],
+    sortableFields: ["name", "createdAt", "isActive"],
     defaultSortBy: "createdAt",
     defaultSortOrder: "desc",
   });

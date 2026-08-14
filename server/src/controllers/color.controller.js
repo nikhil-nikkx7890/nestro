@@ -30,6 +30,7 @@ export const createColor = async (req, res) => {
 export const getAllColors = async (req, res) => {
     const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
         searchableFields: ["name"],
+        sortableFields: ["name", "createdAt", "isActive"],
         defaultSortBy: "createdAt",
         defaultSortOrder: "desc",
     });

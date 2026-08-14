@@ -1,9 +1,12 @@
 import { escapeRegex } from "./escapeRegex.js";
 
+const MAX_LIMIT = 100;
+
 export function buildQueryFeatures(query, options = {} ) {
 
     const {
         searchableFields = ["name"],
+        sortableFields = ["name", "createdAt", "isActive"],
         defaultSortBy = "createdAt",
         defaultSortOrder = "desc",
         defaultLimit = 10,
@@ -24,14 +27,15 @@ export function buildQueryFeatures(query, options = {} ) {
         filter.isActive = isActive === "true";
     }
     // 2. SORT
-    const order = sortOrder || defaultSortOrder;
+    const order = sortOrder === "asc" ? "asc" : defaultSortOrder;
+    const safeSortBy = sortableFields.includes(sortBy) ? sortBy : defaultSortBy;
     const sort = {
-        [sortBy || defaultSortBy]: order === "asc" ? 1 : -1,
+        [safeSortBy]: order === "asc" ? 1 : -1,
     };
 
     // 3. PAGINATION
     const pageNumber = Math.max(Number(page) || 1, 1);
-    const limitNumber = Math.max(Number(limit) || defaultLimit, 1);
+    const limitNumber = Math.min(Math.max(Number(limit) || defaultLimit, 1), MAX_LIMIT);
     const skip = (pageNumber - 1) * limitNumber;
 
     return { filter, sort, skip, limit: limitNumber, page: pageNumber };
