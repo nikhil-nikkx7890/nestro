@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import slugify from "../utils/slugify.js";
+import { generateUniqueSlug } from "../utils/generateUniqueSlug.js";
 
 const categorySchema = new mongoose.Schema(
   {
@@ -45,9 +45,9 @@ const categorySchema = new mongoose.Schema(
   },
 );
 
-categorySchema.pre("save", function () {
+categorySchema.pre("save", async function () {
   if (this.isModified("name")) {
-    this.slug = slugify(this.name);
+    this.slug = await generateUniqueSlug(this.constructor, this.name, this._id);
   }
 });
 

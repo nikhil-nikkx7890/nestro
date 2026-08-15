@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import slugify from "../utils/slugify.js";
+import { generateUniqueSlug } from "../utils/generateUniqueSlug.js";
 
 const roomTypeSchema = new mongoose.Schema(
   {
@@ -30,9 +30,9 @@ const roomTypeSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
-roomTypeSchema.pre("save", function () {
+roomTypeSchema.pre("save", async function () {
   if (this.isModified("name")) {
-    this.slug = slugify(this.name);
+    this.slug = await generateUniqueSlug(this.constructor, this.name, this._id);
   }
 });
 

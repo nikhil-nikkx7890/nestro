@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import slugify from "../utils/slugify.js";
+import { generateUniqueSlug } from "../utils/generateUniqueSlug.js";
 
 const brandSchema = new mongoose.Schema(
   {
@@ -29,9 +29,9 @@ const brandSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-brandSchema.pre("save", function () {
+brandSchema.pre("save", async function () {
   if (this.isModified("name")) {
-    this.slug = slugify(this.name);
+    this.slug = await generateUniqueSlug(this.constructor, this.name, this._id);
   }
 });
 

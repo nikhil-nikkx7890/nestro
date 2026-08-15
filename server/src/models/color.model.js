@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import slugify from "../utils/slugify.js";
+import { generateUniqueSlug } from "../utils/generateUniqueSlug.js";
 
 const colorSchema = new mongoose.Schema(
     {
@@ -37,9 +37,9 @@ const colorSchema = new mongoose.Schema(
     }
 );
 
-colorSchema.pre("save", function () {
+colorSchema.pre("save", async function () {
     if (this.isModified("name")) {
-        this.slug = slugify(this.name);
+        this.slug = await generateUniqueSlug(this.constructor, this.name, this._id);
     }
 });
 
