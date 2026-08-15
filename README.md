@@ -391,7 +391,7 @@ Nestro/
 
 - Service Layer Pattern via a Shared Service Factory (`createResourceService`) — every Master Data module's CRUD service is generated from one function instead of hand-written per module
 - Shared CRUD Hook (`useCrud`) — all state, handlers, search/sort/filter/pagination logic for every Master Data admin page lives in one hook
-- Shared Query Builder (`buildQueryFeatures`) — backend search, sort, and filter logic built once and reused across all 5 controllers
+- Shared Query Builder (`buildQueryFeatures`) — backend search, sort, and filter logic built once and reused across all 5 controllers, backed by a MongoDB text index rather than a regex scan
 - Shared Search, Sortable Columns, Status Filter, and Pagination UI — one component each, reused across every Master Data table
 - Reusable Delete Confirmation Modal
 - Reusable Empty State Component
@@ -401,6 +401,20 @@ Nestro/
 - Feature-based Folder Structure
 - Shared Form Validation Pattern (React Hook Form + Zod)
 - Database Seed Script for local development/testing
+
+---
+
+### Hardening Pass
+
+A full correctness and security review of the backend, completed before starting the Product module:
+
+- Regex-based input escaped everywhere it reaches a database query, preventing false matches and catastrophic backtracking
+- Pagination limits capped, and sortable fields whitelisted against arbitrary query input
+- CORS restricted to known origins, with helmet and rate limiting added at the API boundary
+- Required environment variables validated at boot, failing fast instead of failing silently
+- Orphaned Cloudinary images cleaned up automatically on delete and on image replace
+- Slug collisions resolved with a numeric suffix instead of silently colliding
+- Search moved from an unindexed regex scan to a MongoDB text index
 
 ---
 
@@ -416,7 +430,8 @@ Nestro/
 - ✅ Colors
 - ✅ Image Upload
 - ✅ Search, Pagination, Sorting, Filtering
-- 🟡 Error Handling Improvements (in progress)
+- ✅ Error Handling Improvements
+- ✅ Hardening Pass (security, data integrity, and correctness review)
 
 ---
 
@@ -603,7 +618,9 @@ Rather than only focusing on building features, I aim to understand the reasonin
 
 🟢 Search, Pagination, Sorting, Filtering
 
-🟡 Error Handling Improvements
+🟢 Error Handling Improvements
+
+🟢 Hardening Pass (security & data integrity)
 
 ⚪ Products
 
