@@ -43,6 +43,8 @@ colorSchema.pre("save", async function () {
     }
 });
 
+colorSchema.index({ name: "text" });
+
 const Color = mongoose.model("Color", colorSchema);
 
 export default Color;

@@ -51,6 +51,8 @@ categorySchema.pre("save", async function () {
   }
 });
 
+categorySchema.index({ name: "text" });
+
 const Category = mongoose.model("Category", categorySchema);
 
 export default Category;

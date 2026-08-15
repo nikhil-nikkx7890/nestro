@@ -35,5 +35,7 @@ brandSchema.pre("save", async function () {
   }
 });
 
+brandSchema.index({ name: "text" });
+
 const Brand = mongoose.model("Brand", brandSchema);
 export default Brand;

@@ -35,5 +35,7 @@ materialSchema.pre("save", async function () {
   }
 });
 
+materialSchema.index({ name: "text" });
+
 const Material = mongoose.model("Material", materialSchema);
 export default Material;

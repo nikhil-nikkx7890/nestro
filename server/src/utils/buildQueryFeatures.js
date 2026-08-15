@@ -1,11 +1,8 @@
-import { escapeRegex } from "./escapeRegex.js";
-
 const MAX_LIMIT = 100;
 
 export function buildQueryFeatures(query, options = {} ) {
 
     const {
-        searchableFields = ["name"],
         sortableFields = ["name", "createdAt", "isActive"],
         defaultSortBy = "createdAt",
         defaultSortOrder = "desc",
@@ -17,10 +14,7 @@ export function buildQueryFeatures(query, options = {} ) {
     const filter = {};
 
     if (search){
-        const safeSearch = escapeRegex(search);
-        filter.$or = searchableFields.map((field) => ({
-            [field]:{ $regex: safeSearch, $options: "i" },
-        }));
+        filter.$text = { $search: search };
     }
 
     if (isActive !== undefined) {

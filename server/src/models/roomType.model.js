@@ -36,6 +36,8 @@ roomTypeSchema.pre("save", async function () {
   }
 });
 
+roomTypeSchema.index({ name: "text" });
+
 const RoomType = mongoose.model("RoomType", roomTypeSchema);
 
 export default RoomType;
