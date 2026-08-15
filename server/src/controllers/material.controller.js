@@ -29,7 +29,6 @@ export const createMaterial = async (req, res) => {
 
 export const getAllMaterials = async (req, res) => {
   const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
-    searchableFields: ["name"],
     sortableFields: ["name", "createdAt", "isActive"],
     defaultSortBy: "createdAt",
     defaultSortOrder: "desc",

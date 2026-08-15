@@ -5,7 +5,13 @@ import { escapeRegex } from "../utils/escapeRegex.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
 
 const createCategory = async (req, res) => {
-  const { name, description = "", displayOrder = 0, image } = req.body;
+  const {
+    name,
+    description = "",
+    displayOrder = 0,
+    image,
+    isActive,
+  } = req.body;
   const existingCategory = await Category.findOne({
     name: { $regex: new RegExp(`^${escapeRegex(name)}$`, "i") },
   });
@@ -17,6 +23,7 @@ const createCategory = async (req, res) => {
     description,
     displayOrder,
     image: image ?? { url: "", publicId: "" },
+    isActive,
   });
 
   res.status(201).json({
@@ -28,7 +35,6 @@ const createCategory = async (req, res) => {
 
 const getCategories = async (req, res) => {
   const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
-    searchableFields: ["name"],
     sortableFields: ["name", "displayOrder", "createdAt", "isActive"],
     defaultSortBy: "displayOrder",
     defaultSortOrder: "asc",

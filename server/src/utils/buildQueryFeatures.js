@@ -21,7 +21,8 @@ export function buildQueryFeatures(query, options = {} ) {
         filter.isActive = isActive === "true";
     }
     // 2. SORT
-    const order = sortOrder === "asc" ? "asc" : defaultSortOrder;
+    const order =
+        sortOrder === "desc" ? "desc" : sortOrder === "asc" ? "asc" : defaultSortOrder;
     const safeSortBy = sortableFields.includes(sortBy) ? sortBy : defaultSortBy;
     const sort = {
         [safeSortBy]: order === "asc" ? 1 : -1,

@@ -27,7 +27,6 @@ const createRoomType = async (req, res) => {
 
 const getAllRoomTypes = async (req, res) => {
   const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
-    searchableFields: ["name"],
     sortableFields: ["name", "createdAt", "isActive"],
     defaultSortBy: "createdAt",
     defaultSortOrder: "desc",
