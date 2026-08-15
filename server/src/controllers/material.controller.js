@@ -1,8 +1,10 @@
 import Material from "../models/material.model.js";
+import ProductVariant from "../models/productVariant.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
+import { assertNotReferenced } from "../utils/checkReferences.js";
 
 export const createMaterial = async (req, res) => {
   const { name, isActive, image } = req.body;
@@ -111,6 +113,8 @@ export const deleteMaterial = async (req, res) => {
   if (!material) {
     throw new AppError("Material not found!", 404);
   }
+
+  await assertNotReferenced(ProductVariant, "material", materialId, "product variant");
 
   if (material.image?.publicId) {
     try {

@@ -1,7 +1,9 @@
 import Color from "../models/color.model.js";
+import ProductVariant from "../models/productVariant.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
+import { assertNotReferenced } from "../utils/checkReferences.js";
 
 export const createColor = async (req, res) => {
     const { name, hexCode, isActive } = req.body;
@@ -113,6 +115,8 @@ export const deleteColor = async (req, res) => {
     if (!color) {
         throw new AppError("Color not found.", 404);
     }
+
+    await assertNotReferenced(ProductVariant, "color", colorId, "product variant");
 
     await color.deleteOne();
 

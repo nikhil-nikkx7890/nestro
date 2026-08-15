@@ -1,8 +1,10 @@
 import Brand from "../models/brand.model.js";
+import Product from "../models/product.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
+import { assertNotReferenced } from "../utils/checkReferences.js";
 
 export const createBrand = async (req, res) => {
   const { name, isActive, image } = req.body;
@@ -108,6 +110,8 @@ export const deleteBrand = async (req, res) => {
   if (!brand) {
     throw new AppError("Brand not found", 404);
   }
+
+  await assertNotReferenced(Product, "brand", brandId, "product");
 
   if (brand.image?.publicId) {
     try {

@@ -1,8 +1,10 @@
 import roomTypeModel from "../models/roomType.model.js";
+import Product from "../models/product.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
+import { assertNotReferenced } from "../utils/checkReferences.js";
 
 const createRoomType = async (req, res) => {
   const { name, isActive, image } = req.body;
@@ -111,6 +113,8 @@ const deleteRoomType = async (req, res) => {
   if (!roomType) {
     throw new AppError(`Room type not found`, 404);
   }
+
+  await assertNotReferenced(Product, "roomTypes", roomTypeId, "product");
 
   if (roomType.image?.publicId) {
     try {

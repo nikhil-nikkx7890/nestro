@@ -1,8 +1,10 @@
 import Category from "../models/category.model.js";
+import Product from "../models/product.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
+import { assertNotReferenced } from "../utils/checkReferences.js";
 
 const createCategory = async (req, res) => {
   const {
@@ -127,6 +129,8 @@ const deleteCategory = async (req, res) => {
   if (!category) {
     throw new AppError("Category not found.", 404);
   }
+
+  await assertNotReferenced(Product, "category", categoryId, "product");
 
   if (category.image?.publicId) {
     try {
