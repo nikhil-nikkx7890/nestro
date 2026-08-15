@@ -2,6 +2,7 @@ import Brand from "../models/brand.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
+import { deleteFromCloudinary } from "../utils/cloudinary.js";
 
 export const createBrand = async (req, res) => {
   const { name, isActive, image } = req.body;
@@ -79,6 +80,19 @@ export const updateBrand = async (req, res) => {
   }
   brand.name = name;
   brand.isActive = isActive;
+
+  if (
+    image &&
+    brand.image?.publicId &&
+    image.publicId !== brand.image.publicId
+  ) {
+    try {
+      await deleteFromCloudinary(brand.image.publicId);
+    } catch (err) {
+      console.error("Failed to delete old Cloudinary image:", err);
+    }
+  }
+
   brand.image = image ?? brand.image;
 
   await brand.save();
@@ -95,6 +109,15 @@ export const deleteBrand = async (req, res) => {
   if (!brand) {
     throw new AppError("Brand not found", 404);
   }
+
+  if (brand.image?.publicId) {
+    try {
+      await deleteFromCloudinary(brand.image.publicId);
+    } catch (err) {
+      console.error("Failed to delete Cloudinary image:", err);
+    }
+  }
+
   await brand.deleteOne();
   return res.status(200).json({
     success: true,

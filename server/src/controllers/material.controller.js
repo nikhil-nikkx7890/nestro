@@ -2,6 +2,7 @@ import Material from "../models/material.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
+import { deleteFromCloudinary } from "../utils/cloudinary.js";
 
 export const createMaterial = async (req, res) => {
   const { name, isActive, image } = req.body;
@@ -81,6 +82,19 @@ export const updateMaterial = async (req, res) => {
   }
   material.name = name;
   material.isActive = isActive;
+
+  if (
+    image &&
+    material.image?.publicId &&
+    image.publicId !== material.image.publicId
+  ) {
+    try {
+      await deleteFromCloudinary(material.image.publicId);
+    } catch (err) {
+      console.error("Failed to delete old Cloudinary image:", err);
+    }
+  }
+
   material.image = image ?? material.image;
 
   await material.save();
@@ -98,6 +112,15 @@ export const deleteMaterial = async (req, res) => {
   if (!material) {
     throw new AppError("Material not found!", 404);
   }
+
+  if (material.image?.publicId) {
+    try {
+      await deleteFromCloudinary(material.image.publicId);
+    } catch (err) {
+      console.error("Failed to delete Cloudinary image:", err);
+    }
+  }
+
   await material.deleteOne();
   return res.status(200).json({
     success: true,

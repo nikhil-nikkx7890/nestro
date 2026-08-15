@@ -2,6 +2,7 @@ import roomTypeModel from "../models/roomType.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
+import { deleteFromCloudinary } from "../utils/cloudinary.js";
 
 const createRoomType = async (req, res) => {
   const { name, isActive, image } = req.body;
@@ -82,6 +83,19 @@ const updateRoomType = async (req, res) => {
 
   roomType.name = name;
   roomType.isActive = isActive;
+
+  if (
+    image &&
+    roomType.image?.publicId &&
+    image.publicId !== roomType.image.publicId
+  ) {
+    try {
+      await deleteFromCloudinary(roomType.image.publicId);
+    } catch (err) {
+      console.error("Failed to delete old Cloudinary image:", err);
+    }
+  }
+
   roomType.image = image ?? roomType.image;
   //  save document ( this triggers the pre("save") middleware to update the slug
   await roomType.save();
@@ -98,6 +112,15 @@ const deleteRoomType = async (req, res) => {
   if (!roomType) {
     throw new AppError(`Room type not found`, 404);
   }
+
+  if (roomType.image?.publicId) {
+    try {
+      await deleteFromCloudinary(roomType.image.publicId);
+    } catch (err) {
+      console.error("Failed to delete Cloudinary image:", err);
+    }
+  }
+
   await roomType.deleteOne();
   res.status(200).json({
     success: true,

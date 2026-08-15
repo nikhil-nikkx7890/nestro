@@ -2,6 +2,7 @@ import Category from "../models/category.model.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import AppError from "../utils/AppError.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
+import { deleteFromCloudinary } from "../utils/cloudinary.js";
 
 const createCategory = async (req, res) => {
   const { name, description = "", displayOrder = 0, image } = req.body;
@@ -87,8 +88,21 @@ const updateCategory = async (req, res) => {
   category.name = name ?? category.name;
   category.description = description ?? category.description;
   category.displayOrder = displayOrder ?? category.displayOrder;
-  category.image = image ?? category.image;
   category.isActive = isActive ?? category.isActive;
+
+  if (
+    image &&
+    category.image?.publicId &&
+    image.publicId !== category.image.publicId
+  ) {
+    try {
+      await deleteFromCloudinary(category.image.publicId);
+    } catch (err) {
+      console.error("Failed to delete old Cloudinary image:", err);
+    }
+  }
+
+  category.image = image ?? category.image;
 
   await category.save();
 
@@ -106,6 +120,14 @@ const deleteCategory = async (req, res) => {
 
   if (!category) {
     throw new AppError("Category not found.", 404);
+  }
+
+  if (category.image?.publicId) {
+    try {
+      await deleteFromCloudinary(category.image.publicId);
+    } catch (err) {
+      console.error("Failed to delete Cloudinary image:", err);
+    }
   }
 
   await category.deleteOne();
