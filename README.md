@@ -154,9 +154,47 @@ A reusable form used for both creating and updating categories.
 
 ---
 
-### Products Module
+### Product & Variant Management
 
-Coming Soon
+#### Backend
+
+- Create Product
+- Get All Products (with populated category, brand, room types, and a computed variant count)
+- Get Product By ID
+- Update Product
+- Delete Product — cascade-aware: blocks with a variant count if the product has variants, requires explicit confirmation to delete the product and all its variants together
+- Create Product Variant
+- Get All Variants for a Product
+- Get Variant By ID
+- Update Variant
+- Delete Variant
+- Referential Integrity — Category, Brand, Room Type, Material, and Color cannot be deleted while a Product or Variant still references them
+- Auto-generated, Collision-safe SKUs — built from the product, material, and color, disambiguated with a document ID fragment rather than relying on truncated names staying unique
+- Compound Uniqueness — a Product cannot have two variants with the same material and color
+- Money stored as Integer Minor Units (paise), never floats
+- Cloudinary Cleanup on Delete and Image Replacement — for both products and variants
+- Route-level ObjectId Validation
+- Reference-existence Validation (not just ID format) on create and update
+- Proper Error Handling
+- RESTful API Structure
+
+#### Frontend
+
+- Products Listing with Search, Sort, Pagination
+- Create Product
+- Edit Product
+- Cascade-aware Delete Confirmation — shows the exact variant count before deleting a product with variants
+- Dedicated Create/Edit Routes (not a modal, since a Product is a composite entity with its own variants)
+- Variant Management Page per Product
+- Variant Create/Edit Modal
+- Multi-image Gallery with a configurable per-entity image cap
+- Room Type Multi-select
+- Specification Key/Value Editor
+- Guided "first variant" prompt immediately after creating a product
+- Shared Form Validation Pattern (React Hook Form + Zod), mirrored on the backend
+- Loading States
+- Error Handling
+- Toast Notifications
 
 ---
 
@@ -437,13 +475,13 @@ A full correctness and security review of the backend, completed before starting
 
 ## Phase 2 — Product Management
 
-- Products
-- Product Variants
-- Product Gallery
+- ✅ Products
+- ✅ Product Variants
+- ✅ Product Gallery
 - Inventory
-- Stock Management
-- Pricing
-- Product Status
+- Stock Management (basic stock + low-stock threshold is in; a dedicated Inventory entity is deferred)
+- ✅ Pricing
+- ✅ Product Status
 
 ---
 
@@ -622,7 +660,7 @@ Rather than only focusing on building features, I aim to understand the reasonin
 
 🟢 Hardening Pass (security & data integrity)
 
-⚪ Products
+🟢 Product & Variant Management
 
 ⚪ Authentication
 
