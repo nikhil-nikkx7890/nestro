@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 
 const DEBOUNCE_MS = 400;
 
@@ -8,6 +8,17 @@ export function useResourceList({ list, entityName }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // `list` is often passed as a fresh inline function on every render
+  // (e.g. a caller binding an extra id: `(params) => service.list(id, params)`).
+  // A ref lets us always call the latest version without making fetchItems'
+  // useCallback identity depend on it — that dependency was the actual bug:
+  // new list() reference -> new fetchItems() reference -> the effect below
+  // re-fires -> setState -> re-render -> new list() reference -> forever.
+  const listRef = useRef(list);
+  useEffect(() => {
+    listRef.current = list;
+  });
 
   // Query state
   const [search, setSearch] = useState("");
@@ -37,7 +48,7 @@ export function useResourceList({ list, entityName }) {
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await list({
+      const response = await listRef.current({
         search: debouncedSearch || undefined,
         page,
         sortBy: sortBy || undefined,
@@ -53,7 +64,7 @@ export function useResourceList({ list, entityName }) {
     } finally {
       setLoading(false);
     }
-  }, [list, entityName, debouncedSearch, page, sortBy, sortOrder, isActive]);
+  }, [entityName, debouncedSearch, page, sortBy, sortOrder, isActive]);
 
   useEffect(() => {
     fetchItems();
