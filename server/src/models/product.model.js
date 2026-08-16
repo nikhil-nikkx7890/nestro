@@ -88,6 +88,20 @@ productSchema.pre("save", async function () {
 
 productSchema.index({ name: "text" });
 
+// Virtual — not stored in the DB, computed on read via populate.
+// Lets us attach variantCount to a Product without denormalizing it
+// into the document itself (which would need manual sync on every
+// variant create/delete).
+productSchema.virtual("variantCount", {
+  ref: "ProductVariant",
+  localField: "_id",
+  foreignField: "product",
+  count: true,
+});
+
+productSchema.set("toJSON", { virtuals: true });
+productSchema.set("toObject", { virtuals: true });
+
 const Product = mongoose.model("Product", productSchema);
 
 export default Product;

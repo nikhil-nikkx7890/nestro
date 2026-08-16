@@ -18,8 +18,8 @@ export function createResourceService(endpoint) {
       const response = await api.put(`${endpoint}/${id}`, data);
       return response.data;
     },
-    remove: async (id) => {
-      const response = await api.delete(`${endpoint}/${id}`);
+    remove: async (id, params = {}) => {
+      const response = await api.delete(`${endpoint}/${id}`, { params });
       return response.data;
     },
   };

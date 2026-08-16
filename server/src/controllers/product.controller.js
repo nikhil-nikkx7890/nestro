@@ -1,4 +1,5 @@
 import Product from "../models/product.model.js";
+import ProductVariant from "../models/productVariant.model.js";
 import Category from "../models/category.model.js";
 import Brand from "../models/brand.model.js";
 import RoomType from "../models/roomType.model.js";
@@ -67,7 +68,8 @@ export const getProducts = async (req, res) => {
       .limit(limit)
       .populate("category", "name slug")
       .populate("brand", "name slug")
-      .populate("roomTypes", "name slug"),
+      .populate("roomTypes", "name slug")
+      .populate("variantCount"),
     Product.countDocuments(filter),
   ]);
 
@@ -149,11 +151,35 @@ export const updateProduct = async (req, res) => {
 export const deleteProduct = async (req, res) => {
   const { productId } = req.params;
 
-  const product = await Product.findById(productId);
+  const product = await Product.findById(productId).populate("variantCount");
 
   if (!product) {
     throw new AppError("Product not found.", 404);
   }
+
+  if (product.variantCount > 0 && req.query.confirmCascade !== "true") {
+    return res.status(409).json({
+      success: false,
+      message: `This product has ${product.variantCount} variant${product.variantCount > 1 ? "s" : ""}. Deleting it will also delete all of its variants.`,
+      variantCount: product.variantCount,
+    });
+  }
+
+  const variants = await ProductVariant.find({ product: productId });
+
+  for (const variant of variants) {
+    for (const image of variant.images) {
+      if (image.publicId) {
+        try {
+          await deleteFromCloudinary(image.publicId);
+        } catch (err) {
+          console.error("Failed to delete variant Cloudinary image:", err);
+        }
+      }
+    }
+  }
+
+  await ProductVariant.deleteMany({ product: productId });
 
   for (const image of product.images) {
     if (image.publicId) {
