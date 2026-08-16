@@ -90,6 +90,11 @@ export const createProductVariant = async (req, res) => {
     }),
   );
 
+  await variant.populate([
+    { path: "material", select: "name slug" },
+    { path: "color", select: "name hexCode" },
+  ]);
+
   return res.status(201).json({
     success: true,
     message: "Product variant created successfully",
@@ -214,6 +219,11 @@ export const updateProductVariant = async (req, res) => {
   variant.isActive = isActive;
 
   await runOrConflict(() => variant.save());
+
+  await variant.populate([
+    { path: "material", select: "name slug" },
+    { path: "color", select: "name hexCode" },
+  ]);
 
   return res.status(200).json({
     success: true,
