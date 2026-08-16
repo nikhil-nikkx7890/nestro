@@ -41,7 +41,7 @@ export default function NewProductPage() {
       </div>
 
       <div className="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
-        <ProductForm onSubmit={handleCreate} isSubmitting={isSubmitting} />
+        <ProductForm onSubmit={handleCreate} onCancel={() => router.push("/admin/products")} isSubmitting={isSubmitting} />
       </div>
     </div>
   );

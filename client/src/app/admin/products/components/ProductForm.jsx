@@ -13,7 +13,8 @@ import { categoryService } from "@/services/category.service";
 import { brandService } from "@/services/brand.service";
 import { roomTypeService } from "@/services/roomType.service";
 
-export default function ProductForm({ product, onSubmit, isSubmitting }) {
+export default function ProductForm({ product, onSubmit, onCancel, isSubmitting }) {
+  const isEditMode = Boolean(product);
   // Dropdown option lists — fetched once on mount, not tied to react-hook-form
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -371,12 +372,27 @@ export default function ProductForm({ product, onSubmit, isSubmitting }) {
       </div>
 
       <div className="flex justify-end gap-3 border-t border-neutral-200 pt-6">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="rounded-xl border border-neutral-300 px-6 py-3 text-sm font-medium text-neutral-700 transition hover:bg-neutral-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Cancel
+          </button>
+        )}
+
         <button
           type="submit"
           disabled={isSubmitting}
           className="rounded-xl bg-neutral-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSubmitting ? "Saving..." : "Save & Continue to Variants"}
+          {isSubmitting
+            ? "Saving..."
+            : isEditMode
+              ? "Save Changes"
+              : "Save & Continue to Variants"}
         </button>
       </div>
     </form>
