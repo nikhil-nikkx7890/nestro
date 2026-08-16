@@ -15,6 +15,7 @@ import { roomTypeService } from "@/services/roomType.service";
 
 export default function ProductForm({ product, onSubmit, onCancel, isSubmitting }) {
   const isEditMode = Boolean(product);
+  const [isImageUploading, setIsImageUploading] = useState(false);
   // Dropdown option lists — fetched once on mount, not tied to react-hook-form
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -127,12 +128,20 @@ export default function ProductForm({ product, onSubmit, onCancel, isSubmitting 
     );
   };
 
+  const onFormSubmit = (data) => {
+    // Drop any image slots the user added but never actually uploaded
+    // into — an empty {url: "", publicId: ""} object has no business
+    // being saved to the product.
+    const cleanedImages = data.images.filter((img) => img.publicId);
+    onSubmit({ ...data, images: cleanedImages });
+  };
+
   if (loadingOptions) {
     return <div className="p-10 text-center text-neutral-500">Loading...</div>;
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+    <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-8">
       {/* Name */}
       <div>
         <label className="mb-2 block text-sm font-medium text-neutral-700">
@@ -267,15 +276,18 @@ export default function ProductForm({ product, onSubmit, onCancel, isSubmitting 
                 folder="nestro/products"
                 value={img}
                 onChange={(next) => updateImage(index, next)}
+                onUploadingChange={setIsImageUploading}
               />
-              <button
-                type="button"
-                onClick={() => removeImage(index)}
-                className="absolute -right-2 -top-2 rounded-full bg-red-600 p-1 text-white shadow"
-                aria-label="Remove image slot"
-              >
-                <X size={12} />
-              </button>
+              {img.publicId && (
+                <button
+                  type="button"
+                  onClick={() => removeImage(index)}
+                  className="absolute -left-2 -top-2 rounded-full bg-red-600 p-1 text-white shadow"
+                  aria-label="Remove image slot"
+                >
+                  <X size={12} />
+                </button>
+              )}
             </div>
           ))}
           <button
@@ -330,6 +342,12 @@ export default function ProductForm({ product, onSubmit, onCancel, isSubmitting 
             Add specification
           </button>
         </div>
+        {errors.specifications && (
+          <p className="mt-1 text-sm text-red-500">
+            Every specification needs both a key and a value — remove any
+            empty rows or fill them in.
+          </p>
+        )}
       </div>
 
       {/* SEO */}
@@ -385,14 +403,16 @@ export default function ProductForm({ product, onSubmit, onCancel, isSubmitting 
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isImageUploading}
           className="rounded-xl bg-neutral-900 px-6 py-3 text-sm font-medium text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSubmitting
-            ? "Saving..."
-            : isEditMode
-              ? "Save Changes"
-              : "Save & Continue to Variants"}
+          {isImageUploading
+            ? "Uploading image..."
+            : isSubmitting
+              ? "Saving..."
+              : isEditMode
+                ? "Save Changes"
+                : "Save & Continue to Variants"}
         </button>
       </div>
     </form>
