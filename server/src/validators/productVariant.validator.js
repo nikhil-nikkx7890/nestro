@@ -25,7 +25,6 @@ const weightSchema = z
 
 export const productVariantSchema = z
   .object({
-    sku: z.string().trim().min(1, "SKU is required.").toUpperCase(),
     price: z.number().int("Price must be an integer (minor units).").min(0),
     compareAtPrice: z
       .number()
@@ -43,6 +42,7 @@ export const productVariantSchema = z
           publicId: z.string().trim().optional().default(""),
         }),
       )
+      .max(4, "You can add up to 4 images.")
       .optional()
       .default([]),
     stock: z.number().int().min(0).optional().default(0),

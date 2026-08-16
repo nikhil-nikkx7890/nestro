@@ -27,6 +27,7 @@ export const productSchema = z
           publicId: z.string().trim().optional().default(""),
         }),
       )
+      .max(8, "You can add up to 8 images.")
       .optional()
       .default([]),
     specifications: z

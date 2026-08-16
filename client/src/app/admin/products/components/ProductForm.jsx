@@ -290,15 +290,20 @@ export default function ProductForm({ product, onSubmit, onCancel, isSubmitting 
               )}
             </div>
           ))}
-          <button
-            type="button"
-            onClick={addImage}
-            className="flex h-40 w-40 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-300 text-neutral-500 transition hover:border-neutral-900 hover:text-neutral-900"
-          >
-            <Plus size={22} />
-            <span className="text-xs font-medium">Add image slot</span>
-          </button>
+          {currentImages.length < 8 && (
+            <button
+              type="button"
+              onClick={addImage}
+              className="flex h-40 w-40 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-neutral-300 text-neutral-500 transition hover:border-neutral-900 hover:text-neutral-900"
+            >
+              <Plus size={22} />
+              <span className="text-xs font-medium">Add image slot</span>
+            </button>
+          )}
         </div>
+        <p className="mt-2 text-xs text-neutral-400">
+          {currentImages.length} / 8 images
+        </p>
       </div>
 
       {/* Specifications */}
