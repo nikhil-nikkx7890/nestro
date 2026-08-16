@@ -20,9 +20,19 @@ export const variantSchema = z
   .object({
     price: z.coerce.number().int("Price must be a whole number.").min(0),
     compareAtPrice: z
-      .union([z.coerce.number().int().min(0), z.literal("")])
+      .string()
+      .or(z.number())
       .optional()
-      .transform((val) => (val === "" ? null : val)),
+      .transform((val) => {
+        if (val === "" || val === undefined || val === null) return null;
+        return typeof val === "string" ? Number(val) : val;
+      })
+      .refine((val) => val === null || Number.isInteger(val), {
+        message: "Compare-at price must be a whole number.",
+      })
+      .refine((val) => val === null || val >= 0, {
+        message: "Compare-at price cannot be negative.",
+      }),
     material: z.string().trim().min(1, "Material is required."),
     color: z.string().trim().min(1, "Color is required."),
     images: z

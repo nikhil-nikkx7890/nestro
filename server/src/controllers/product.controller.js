@@ -47,6 +47,13 @@ export const createProduct = async (req, res) => {
     status,
   });
 
+  await product.populate([
+    { path: "category", select: "name slug" },
+    { path: "brand", select: "name slug" },
+    { path: "roomTypes", select: "name slug" },
+    { path: "variantCount" },
+  ]);
+
   return res.status(201).json({
     success: true,
     message: "Product created successfully",
@@ -91,7 +98,8 @@ export const getProductById = async (req, res) => {
   const product = await Product.findById(productId)
     .populate("category", "name slug")
     .populate("brand", "name slug")
-    .populate("roomTypes", "name slug");
+    .populate("roomTypes", "name slug")
+    .populate("variantCount");
 
   if (!product) {
     throw new AppError("Product not found.", 404);
@@ -140,6 +148,13 @@ export const updateProduct = async (req, res) => {
   product.status = status;
 
   await product.save();
+
+  await product.populate([
+    { path: "category", select: "name slug" },
+    { path: "brand", select: "name slug" },
+    { path: "roomTypes", select: "name slug" },
+    { path: "variantCount" },
+  ]);
 
   return res.status(200).json({
     success: true,
