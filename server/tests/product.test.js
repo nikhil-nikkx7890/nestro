@@ -5,6 +5,7 @@ import Product from "../src/models/product.model.js";
 import ProductVariant from "../src/models/productVariant.model.js";
 import { connectTestDB, clearTestDB, disconnectTestDB } from "./setup/testDb.js";
 import { createMasterData } from "./fixtures/masterData.js";
+import { createAdminAgent } from "./fixtures/auth.js";
 
 beforeAll(async () => {
   await connectTestDB();
@@ -20,22 +21,20 @@ afterAll(async () => {
 
 describe("POST /api/products", () => {
   it("creates a product when the payload is valid", async () => {
+    const adminAgent = await createAdminAgent();
     const { category, brand, roomType } = await createMasterData();
 
-    const res = await request(app)
-      .post("/api/products")
-      .send({
-        name: "Test Sofa",
-        category: category._id.toString(),
-        brand: brand._id.toString(),
-        roomTypes: [roomType._id.toString()],
-      });
+    const res = await adminAgent.post("/api/products").send({
+      name: "Test Sofa",
+      category: category._id.toString(),
+      brand: brand._id.toString(),
+      roomTypes: [roomType._id.toString()],
+    });
 
     expect(res.status).toBe(201);
     expect(res.body.success).toBe(true);
     expect(res.body.data.name).toBe("Test Sofa");
     expect(res.body.data.slug).toBe("test-sofa");
-    // populate() should have expanded these, not left raw ObjectId strings
     expect(res.body.data.category.name).toBe("Sofas");
     expect(res.body.data.variantCount).toBe(0);
 
@@ -44,21 +43,33 @@ describe("POST /api/products", () => {
   });
 
   it("rejects a product that references a category that doesn't exist", async () => {
+    const adminAgent = await createAdminAgent();
     const { brand, roomType } = await createMasterData();
     const fakeCategoryId = new mongoose.Types.ObjectId().toString();
 
-    const res = await request(app)
-      .post("/api/products")
-      .send({
-        name: "Test Sofa",
-        category: fakeCategoryId,
-        brand: brand._id.toString(),
-        roomTypes: [roomType._id.toString()],
-      });
+    const res = await adminAgent.post("/api/products").send({
+      name: "Test Sofa",
+      category: fakeCategoryId,
+      brand: brand._id.toString(),
+      roomTypes: [roomType._id.toString()],
+    });
 
     expect(res.status).toBe(400);
     expect(res.body.success).toBe(false);
     expect(res.body.message).toMatch(/Category not found/i);
+  });
+
+  it("rejects the request when no one is logged in (ADR-035)", async () => {
+    const { category, brand, roomType } = await createMasterData();
+
+    const res = await request(app).post("/api/products").send({
+      name: "Test Sofa",
+      category: category._id.toString(),
+      brand: brand._id.toString(),
+      roomTypes: [roomType._id.toString()],
+    });
+
+    expect(res.status).toBe(401);
   });
 });
 
@@ -90,6 +101,7 @@ describe("GET /api/products/:productId", () => {
 
 describe("DELETE /api/products/:productId", () => {
   it("blocks deleting a product that still has variants, unless confirmCascade=true", async () => {
+    const adminAgent = await createAdminAgent();
     const { category, brand, roomType, material, color } = await createMasterData();
     const product = await Product.create({
       name: "Test Sofa",
@@ -105,11 +117,11 @@ describe("DELETE /api/products/:productId", () => {
       color: color._id,
     });
 
-    const withoutConfirm = await request(app).delete(`/api/products/${product._id}`);
+    const withoutConfirm = await adminAgent.delete(`/api/products/${product._id}`);
     expect(withoutConfirm.status).toBe(409);
     expect(await Product.findById(product._id)).not.toBeNull();
 
-    const withConfirm = await request(app).delete(
+    const withConfirm = await adminAgent.delete(
       `/api/products/${product._id}?confirmCascade=true`,
     );
     expect(withConfirm.status).toBe(200);
@@ -118,9 +130,10 @@ describe("DELETE /api/products/:productId", () => {
   });
 
   it("returns 404 when deleting a product that doesn't exist", async () => {
+    const adminAgent = await createAdminAgent();
     const fakeId = new mongoose.Types.ObjectId().toString();
 
-    const res = await request(app).delete(`/api/products/${fakeId}`);
+    const res = await adminAgent.delete(`/api/products/${fakeId}`);
 
     expect(res.status).toBe(404);
   });

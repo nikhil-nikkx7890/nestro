@@ -9,6 +9,8 @@ import {
 import { validateObjectId } from "../middlewares/validateObjectId.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
 import { productVariantSchema } from "../validators/productVariant.validator.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorize } from "../middlewares/authorize.js";
 
 const router = express.Router();
 
@@ -16,6 +18,8 @@ const router = express.Router();
 router
   .route("/products/:productId/variants")
   .post(
+    authenticate,
+    authorize("admin"),
     validateObjectId("productId"),
     validateRequest(productVariantSchema),
     createProductVariant,
@@ -27,10 +31,17 @@ router
   .route("/variants/:variantId")
   .get(validateObjectId("variantId"), getVariantById)
   .put(
+    authenticate,
+    authorize("admin"),
     validateObjectId("variantId"),
     validateRequest(productVariantSchema),
     updateProductVariant,
   )
-  .delete(validateObjectId("variantId"), deleteProductVariant);
+  .delete(
+    authenticate,
+    authorize("admin"),
+    validateObjectId("variantId"),
+    deleteProductVariant,
+  );
 
 export default router;

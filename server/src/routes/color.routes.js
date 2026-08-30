@@ -11,18 +11,36 @@ import {
 import { validateObjectId } from "../middlewares/validateObjectId.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
 import { colorSchema } from "../validators/color.validator.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorize } from "../middlewares/authorize.js";
 
 const router = express.Router();
 
 router
   .route("/")
   .get(getAllColors)
-  .post(validateRequest(colorSchema), createColor);
+  .post(
+    authenticate,
+    authorize("admin"),
+    validateRequest(colorSchema),
+    createColor,
+  );
 
 router
   .route("/:colorId")
   .get(validateObjectId("colorId"), getColorById)
-  .put(validateObjectId("colorId"), validateRequest(colorSchema), updateColor)
-  .delete(validateObjectId("colorId"), deleteColor);
+  .put(
+    authenticate,
+    authorize("admin"),
+    validateObjectId("colorId"),
+    validateRequest(colorSchema),
+    updateColor,
+  )
+  .delete(
+    authenticate,
+    authorize("admin"),
+    validateObjectId("colorId"),
+    deleteColor,
+  );
 
 export default router;

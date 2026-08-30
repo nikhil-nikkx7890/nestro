@@ -4,6 +4,7 @@ import app from "../src/app.js";
 import Material from "../src/models/material.model.js";
 import { connectTestDB, clearTestDB, disconnectTestDB } from "./setup/testDb.js";
 import { createMasterData, createTestProduct, createTestVariant } from "./fixtures/masterData.js";
+import { createAdminAgent } from "./fixtures/auth.js";
 
 beforeAll(async () => {
   await connectTestDB();
@@ -19,7 +20,9 @@ afterAll(async () => {
 
 describe("POST /api/materials", () => {
   it("creates a material when the payload is valid", async () => {
-    const res = await request(app)
+    const adminAgent = await createAdminAgent();
+
+    const res = await adminAgent
       .post("/api/materials")
       .send({ name: "Sheesham Wood", isActive: true });
 
@@ -30,14 +33,21 @@ describe("POST /api/materials", () => {
   });
 
   it("rejects a duplicate material name (case-insensitive)", async () => {
+    const adminAgent = await createAdminAgent();
     await Material.create({ name: "Sheesham Wood" });
 
-    const res = await request(app)
+    const res = await adminAgent
       .post("/api/materials")
       .send({ name: "sheesham wood", isActive: true });
 
     expect(res.status).toBe(409);
     expect(res.body.success).toBe(false);
+  });
+
+  it("rejects the request when no one is logged in (ADR-035)", async () => {
+    const res = await request(app).post("/api/materials").send({ name: "Sheesham Wood" });
+
+    expect(res.status).toBe(401);
   });
 });
 
@@ -53,22 +63,22 @@ describe("GET /api/materials/:materialId", () => {
 
 describe("DELETE /api/materials/:materialId", () => {
   it("blocks deleting a material that a variant still references (ADR-024)", async () => {
-    // Material is referenced by ProductVariant, not Product directly —
-    // so unlike Category/Brand/RoomType, we need a Product AND a Variant on it.
+    const adminAgent = await createAdminAgent();
     const masterData = await createMasterData();
     const product = await createTestProduct(masterData);
     await createTestVariant(product, masterData);
 
-    const res = await request(app).delete(`/api/materials/${masterData.material._id}`);
+    const res = await adminAgent.delete(`/api/materials/${masterData.material._id}`);
 
     expect(res.status).toBe(409);
     expect(await Material.findById(masterData.material._id)).not.toBeNull();
   });
 
   it("deletes a material that nothing references", async () => {
+    const adminAgent = await createAdminAgent();
     const material = await Material.create({ name: "Unused Material" });
 
-    const res = await request(app).delete(`/api/materials/${material._id}`);
+    const res = await adminAgent.delete(`/api/materials/${material._id}`);
 
     expect(res.status).toBe(200);
     expect(await Material.findById(material._id)).toBeNull();

@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
 import categoryRoutes from "./routes/category.routes.js";
 import roomTypeRoutes from "./routes/roomType.routes.js";
 import brandRoutes from "./routes/brand.routes.js";
@@ -10,6 +11,7 @@ import colorRoutes from "./routes/color.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import productVariantRoutes from "./routes/productVariant.routes.js";
+import authRoutes from "./routes/auth.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -35,7 +37,9 @@ const apiLimiter = rateLimit({
 app.use("/api", apiLimiter);
 
 app.use(express.json());
+app.use(cookieParser());
 
+app.use("/api/auth", authRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/room-types", roomTypeRoutes);
 app.use("/api/brands", brandRoutes);

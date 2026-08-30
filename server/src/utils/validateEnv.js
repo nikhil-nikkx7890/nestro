@@ -32,6 +32,11 @@ const envSchema = z.object({
     (val) => val ?? "",
     z.string().min(1, "CLOUDINARY_API_SECRET is required.")
   ),
+  JWT_SECRET: z.preprocess(
+    (val) => val ?? "",
+    z.string().min(32, "JWT_SECRET is required and must be at least 32 characters.")
+  ),
+  JWT_EXPIRES_IN: z.string().optional().default("7d"),
 });
 
 export function validateEnv() {

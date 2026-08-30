@@ -4,6 +4,7 @@ import app from "../src/app.js";
 import Color from "../src/models/color.model.js";
 import { connectTestDB, clearTestDB, disconnectTestDB } from "./setup/testDb.js";
 import { createMasterData, createTestProduct, createTestVariant } from "./fixtures/masterData.js";
+import { createAdminAgent } from "./fixtures/auth.js";
 
 beforeAll(async () => {
   await connectTestDB();
@@ -19,7 +20,9 @@ afterAll(async () => {
 
 describe("POST /api/colors", () => {
   it("creates a color when the payload is valid", async () => {
-    const res = await request(app)
+    const adminAgent = await createAdminAgent();
+
+    const res = await adminAgent
       .post("/api/colors")
       .send({ name: "Walnut Brown", hexCode: "#8B5E3C", isActive: true });
 
@@ -31,14 +34,23 @@ describe("POST /api/colors", () => {
   });
 
   it("rejects a duplicate color name (case-insensitive)", async () => {
+    const adminAgent = await createAdminAgent();
     await Color.create({ name: "Walnut Brown", hexCode: "#8B5E3C" });
 
-    const res = await request(app)
+    const res = await adminAgent
       .post("/api/colors")
       .send({ name: "walnut brown", hexCode: "#8B5E3C", isActive: true });
 
     expect(res.status).toBe(409);
     expect(res.body.success).toBe(false);
+  });
+
+  it("rejects the request when no one is logged in (ADR-035)", async () => {
+    const res = await request(app)
+      .post("/api/colors")
+      .send({ name: "Walnut Brown", hexCode: "#8B5E3C" });
+
+    expect(res.status).toBe(401);
   });
 });
 
@@ -54,22 +66,22 @@ describe("GET /api/colors/:colorId", () => {
 
 describe("DELETE /api/colors/:colorId", () => {
   it("blocks deleting a color that a variant still references (ADR-024)", async () => {
-    // Color is referenced by ProductVariant, not Product directly —
-    // so unlike Category/Brand/RoomType, we need a Product AND a Variant on it.
+    const adminAgent = await createAdminAgent();
     const masterData = await createMasterData();
     const product = await createTestProduct(masterData);
     await createTestVariant(product, masterData);
 
-    const res = await request(app).delete(`/api/colors/${masterData.color._id}`);
+    const res = await adminAgent.delete(`/api/colors/${masterData.color._id}`);
 
     expect(res.status).toBe(409);
     expect(await Color.findById(masterData.color._id)).not.toBeNull();
   });
 
   it("deletes a color that nothing references", async () => {
+    const adminAgent = await createAdminAgent();
     const color = await Color.create({ name: "Unused Color", hexCode: "#123456" });
 
-    const res = await request(app).delete(`/api/colors/${color._id}`);
+    const res = await adminAgent.delete(`/api/colors/${color._id}`);
 
     expect(res.status).toBe(200);
     expect(await Color.findById(color._id)).toBeNull();

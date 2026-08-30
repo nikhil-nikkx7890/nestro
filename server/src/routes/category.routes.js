@@ -9,21 +9,35 @@ import {
 import { validateObjectId } from "../middlewares/validateObjectId.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
 import { categorySchema } from "../validators/category.validator.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorize } from "../middlewares/authorize.js";
 
 const router = express.Router();
 router
   .route("/")
-  .post(validateRequest(categorySchema), createCategory)
+  .post(
+    authenticate,
+    authorize("admin"),
+    validateRequest(categorySchema),
+    createCategory,
+  )
   .get(getCategories);
 
 router
   .route("/:categoryId")
   .get(validateObjectId("categoryId"), getCategoryById)
   .put(
+    authenticate,
+    authorize("admin"),
     validateObjectId("categoryId"),
     validateRequest(categorySchema),
     updateCategory,
   )
-  .delete(validateObjectId("categoryId"), deleteCategory);
+  .delete(
+    authenticate,
+    authorize("admin"),
+    validateObjectId("categoryId"),
+    deleteCategory,
+  );
 
 export default router;

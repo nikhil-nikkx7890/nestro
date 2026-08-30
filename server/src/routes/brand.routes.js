@@ -9,17 +9,35 @@ import {
 import { validateObjectId } from "../middlewares/validateObjectId.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
 import { brandSchema } from "../validators/brand.validator.js";
+import { authenticate } from "../middlewares/authenticate.js";
+import { authorize } from "../middlewares/authorize.js";
 
 const router = express.Router();
 router
   .route("/")
   .get(getAllBrands)
-  .post(validateRequest(brandSchema), createBrand);
+  .post(
+    authenticate,
+    authorize("admin"),
+    validateRequest(brandSchema),
+    createBrand,
+  );
 
 router
   .route("/:brandId")
   .get(validateObjectId("brandId"), getBrandById)
-  .put(validateObjectId("brandId"), validateRequest(brandSchema), updateBrand)
-  .delete(validateObjectId("brandId"), deleteBrand);
+  .put(
+    authenticate,
+    authorize("admin"),
+    validateObjectId("brandId"),
+    validateRequest(brandSchema),
+    updateBrand,
+  )
+  .delete(
+    authenticate,
+    authorize("admin"),
+    validateObjectId("brandId"),
+    deleteBrand,
+  );
 
 export default router;
