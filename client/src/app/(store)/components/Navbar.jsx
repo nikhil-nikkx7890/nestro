@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, User } from "lucide-react";
+import { Heart, ShoppingBag, User } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 function IconLink({ href, count, label, children }) {
   return (
@@ -28,6 +29,7 @@ function IconLink({ href, count, label, children }) {
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
   const { cart } = useCart();
+  const { products: wishlistProducts } = useWishlist();
   const router = useRouter();
 
   const isCustomer = user?.role === "customer";
@@ -57,9 +59,14 @@ export default function Navbar() {
           </Link>
 
           {isCustomer && (
-            <IconLink href="/cart" label="Cart" count={cart.itemCount}>
-              <ShoppingBag size={20} />
-            </IconLink>
+            <>
+              <IconLink href="/wishlist" label="Wishlist" count={wishlistProducts.length}>
+                <Heart size={20} />
+              </IconLink>
+              <IconLink href="/cart" label="Cart" count={cart.itemCount}>
+                <ShoppingBag size={20} />
+              </IconLink>
+            </>
           )}
 
           {!loading && user?.role === "admin" && (

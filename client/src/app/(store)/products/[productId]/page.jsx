@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { Minus, Plus } from "lucide-react";
+import { Heart, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { productService } from "@/services/product.service";
@@ -11,6 +11,7 @@ import { variantService } from "@/services/variant.service";
 import { toTitleCase, formatPaise } from "@/utils/formatters";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
 
 import VariantPicker from "./components/VariantPicker";
 
@@ -19,6 +20,8 @@ export default function ProductDetailPage() {
   const router = useRouter();
   const { user } = useAuth();
   const { addItem: addCartItem } = useCart();
+  const { isWishlisted, addItem: addWishlistItem, removeItem: removeWishlistItem } =
+    useWishlist();
 
   const [product, setProduct] = useState(null);
   const [variants, setVariants] = useState([]);
@@ -28,6 +31,7 @@ export default function ProductDetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -79,6 +83,26 @@ export default function ProductDetailPage() {
       toast.error(err?.response?.data?.message || "Failed to add to cart.");
     } finally {
       setIsAddingToCart(false);
+    }
+  };
+
+  const handleToggleWishlist = async () => {
+    if (!isCustomer) {
+      requireCustomerLogin();
+      return;
+    }
+
+    try {
+      setIsTogglingWishlist(true);
+      if (isWishlisted(productId)) {
+        await removeWishlistItem(productId);
+      } else {
+        await addWishlistItem(productId);
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to update wishlist.");
+    } finally {
+      setIsTogglingWishlist(false);
     }
   };
 
@@ -170,9 +194,26 @@ export default function ProductDetailPage() {
             </p>
           )}
 
-          <h1 className="mt-2 font-heading text-4xl text-[#2B2621]">
-            {toTitleCase(product.name)}
-          </h1>
+          <div className="mt-2 flex items-start justify-between gap-4">
+            <h1 className="font-heading text-4xl text-[#2B2621]">
+              {toTitleCase(product.name)}
+            </h1>
+
+            <button
+              type="button"
+              onClick={handleToggleWishlist}
+              disabled={isTogglingWishlist}
+              aria-label={
+                isWishlisted(productId) ? "Remove from wishlist" : "Add to wishlist"
+              }
+              className="mt-1 shrink-0 text-[#B15E3B] transition disabled:opacity-40"
+            >
+              <Heart
+                size={26}
+                fill={isWishlisted(productId) ? "currentColor" : "none"}
+              />
+            </button>
+          </div>
 
           {product.brand?.name && (
             <p className="mt-2 text-[#8A8071]">{product.brand.name}</p>
