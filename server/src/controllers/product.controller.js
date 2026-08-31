@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import Product from "../models/product.model.js";
 import ProductVariant from "../models/productVariant.model.js";
 import Category from "../models/category.model.js";
@@ -6,6 +7,9 @@ import RoomType from "../models/roomType.model.js";
 import AppError from "../utils/AppError.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
+
+const isValidObjectId = (value) =>
+  typeof value === "string" && mongoose.Types.ObjectId.isValid(value);
 
 /**
  * Confirms that category, brand, and every roomTypes id in the payload
@@ -73,6 +77,33 @@ export const getProducts = async (req, res) => {
   // safe default is what happens when nothing is specified (ADR-036).
   if (req.user?.role !== "admin") {
     filter.status = "published";
+  }
+
+  // Category and Brand live directly on Product, so they filter the same
+  // way status does. Material and Color live on ProductVariant (ADR-005),
+  // so a Product only matches if at least one of its variants has that
+  // material/color — resolved with a lookup rather than a full aggregation
+  // pipeline, which stays reserved for buildQueryFeatures v2 (see the
+  // Filters decision in ADR-040).
+  const { category, brand, material, color } = req.query;
+
+  if (isValidObjectId(category)) {
+    filter.category = category;
+  }
+  if (isValidObjectId(brand)) {
+    filter.brand = brand;
+  }
+  if (isValidObjectId(material) || isValidObjectId(color)) {
+    // isActive: only a variant a shopper could actually buy counts as a
+    // match — a product whose only matching variant was retired
+    // (ADR-024's "deactivate, don't delete") shouldn't surface for a
+    // filter implying that option is available.
+    const variantMatch = { isActive: true };
+    if (isValidObjectId(material)) variantMatch.material = material;
+    if (isValidObjectId(color)) variantMatch.color = color;
+
+    const matchingProductIds = await ProductVariant.distinct("product", variantMatch);
+    filter._id = { $in: matchingProductIds };
   }
 
   const [products, total] = await Promise.all([

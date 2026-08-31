@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 
 const DEBOUNCE_MS = 400;
 
-export function useResourceList({ list, entityName }) {
+export function useResourceList({ list, entityName, extraParams = {} }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -45,6 +45,19 @@ export function useResourceList({ list, entityName }) {
     return () => clearTimeout(timeoutId);
   }, [search]);
 
+  // extraParams lets a caller (e.g. the storefront's Category/Brand/
+  // Material/Color filters) merge extra query params into every fetch
+  // without this hook needing to know what they are. Stringified for the
+  // dependency below — an inline object literal from the caller would
+  // otherwise get a new reference every render, which is exactly the
+  // fetchItems-identity-changes-every-render bug already fixed once for
+  // the `list` prop (see the listRef comment above).
+  const extraParamsKey = JSON.stringify(extraParams);
+
+  useEffect(() => {
+    setPage(1); // reset to page 1 whenever a filter changes
+  }, [extraParamsKey]);
+
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
@@ -54,6 +67,7 @@ export function useResourceList({ list, entityName }) {
         sortBy: sortBy || undefined,
         sortOrder: sortOrder || undefined,
         isActive: isActive || undefined,
+        ...JSON.parse(extraParamsKey),
       });
       setItems(response.data);
       setPagination(response.pagination);
@@ -64,7 +78,7 @@ export function useResourceList({ list, entityName }) {
     } finally {
       setLoading(false);
     }
-  }, [entityName, debouncedSearch, page, sortBy, sortOrder, isActive]);
+  }, [entityName, debouncedSearch, page, sortBy, sortOrder, isActive, extraParamsKey]);
 
   useEffect(() => {
     fetchItems();

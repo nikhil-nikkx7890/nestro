@@ -1,15 +1,21 @@
 "use client";
 
+import { useState } from "react";
+
 import { productService } from "@/services/product.service";
 import { useResourceList } from "@/hooks/useResourceList";
 
 import ProductCard from "./components/ProductCard";
+import ProductFilters from "./components/ProductFilters";
 import StorePagination from "./components/StorePagination";
 
 export default function ProductListingPage() {
+  const [filters, setFilters] = useState({});
+
   const { items: products, loading, error, pagination, goToPage } = useResourceList({
     list: productService.list,
     entityName: "Product",
+    extraParams: filters,
   });
 
   return (
@@ -22,12 +28,14 @@ export default function ProductListingPage() {
         </p>
       </div>
 
+      <ProductFilters filters={filters} onChange={setFilters} />
+
       {loading && <p className="text-[#8A8071]">Loading products...</p>}
 
       {error && <p className="text-red-600">{error}</p>}
 
       {!loading && !error && products.length === 0 && (
-        <p className="text-[#8A8071]">No products available right now.</p>
+        <p className="text-[#8A8071]">No products match these filters.</p>
       )}
 
       {!loading && !error && products.length > 0 && (

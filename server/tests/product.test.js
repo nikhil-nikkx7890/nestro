@@ -3,6 +3,10 @@ import mongoose from "mongoose";
 import app from "../src/app.js";
 import Product from "../src/models/product.model.js";
 import ProductVariant from "../src/models/productVariant.model.js";
+import Category from "../src/models/category.model.js";
+import Brand from "../src/models/brand.model.js";
+import Material from "../src/models/material.model.js";
+import Color from "../src/models/color.model.js";
 import { connectTestDB, clearTestDB, disconnectTestDB } from "./setup/testDb.js";
 import { createMasterData } from "./fixtures/masterData.js";
 import { createAdminAgent, createCustomerAgent } from "./fixtures/auth.js";
@@ -224,5 +228,119 @@ describe("Optional-auth status visibility (ADR-036)", () => {
       expect(res.status).toBe(200);
       expect(res.body.data.status).toBe("published");
     });
+  });
+});
+
+describe("GET /api/products — filters (Category/Brand/Material/Color)", () => {
+  const setupFilterFixture = async () => {
+    const { category, brand, roomType, material, color } = await createMasterData();
+
+    const otherCategory = await Category.create({ name: "Chairs" });
+    const otherBrand = await Brand.create({ name: "Other Brand" });
+    const otherMaterial = await Material.create({ name: "Teak Wood" });
+    const otherColor = await Color.create({ name: "Ivory", hexCode: "#FFFFF0" });
+
+    const base = { roomTypes: [roomType._id], status: "published" };
+
+    const matching = await Product.create({
+      ...base,
+      name: "Matching Product",
+      category: category._id,
+      brand: brand._id,
+    });
+    const nonMatching = await Product.create({
+      ...base,
+      name: "Non-Matching Product",
+      category: otherCategory._id,
+      brand: otherBrand._id,
+    });
+
+    await ProductVariant.create({
+      product: matching._id,
+      sku: "MATCH-SKU-0001",
+      price: 100000,
+      material: material._id,
+      color: color._id,
+    });
+    await ProductVariant.create({
+      product: nonMatching._id,
+      sku: "NOMATCH-SKU-0001",
+      price: 100000,
+      material: otherMaterial._id,
+      color: otherColor._id,
+    });
+
+    return { category, brand, material, color, matching, nonMatching };
+  };
+
+  it("filters by category", async () => {
+    const { category } = await setupFilterFixture();
+
+    const res = await request(app).get(`/api/products?category=${category._id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("Matching Product");
+  });
+
+  it("filters by brand", async () => {
+    const { brand } = await setupFilterFixture();
+
+    const res = await request(app).get(`/api/products?brand=${brand._id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("Matching Product");
+  });
+
+  it("filters by material, reaching into the variant it belongs to", async () => {
+    const { material } = await setupFilterFixture();
+
+    const res = await request(app).get(`/api/products?material=${material._id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("Matching Product");
+  });
+
+  it("filters by color, reaching into the variant it belongs to", async () => {
+    const { color } = await setupFilterFixture();
+
+    const res = await request(app).get(`/api/products?color=${color._id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("Matching Product");
+  });
+
+  it("ignores a malformed filter value instead of erroring", async () => {
+    await setupFilterFixture();
+
+    const res = await request(app).get("/api/products?category=not-an-object-id");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(2);
+  });
+
+  it("does not match a product whose only variant in that material/color is inactive", async () => {
+    const { material, matching } = await setupFilterFixture();
+
+    await ProductVariant.updateOne({ product: matching._id }, { isActive: false });
+
+    const res = await request(app).get(`/api/products?material=${material._id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(0);
+  });
+
+  it("still applies the ADR-036 status default when a filter is combined with an anonymous request", async () => {
+    const { category, matching } = await setupFilterFixture();
+    matching.status = "draft";
+    await matching.save();
+
+    const res = await request(app).get(`/api/products?category=${category._id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(0);
   });
 });
