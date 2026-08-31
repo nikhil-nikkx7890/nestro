@@ -11,6 +11,7 @@ import { validateRequest } from "../middlewares/validateRequest.js";
 import { productSchema } from "../validators/product.validator.js";
 import { authenticate } from "../middlewares/authenticate.js";
 import { authorize } from "../middlewares/authorize.js";
+import { optionalAuthenticate } from "../middlewares/optionalAuthenticate.js";
 
 const router = express.Router();
 
@@ -22,11 +23,11 @@ router
     validateRequest(productSchema),
     createProduct,
   )
-  .get(getProducts);
+  .get(optionalAuthenticate, getProducts);
 
 router
   .route("/:productId")
-  .get(validateObjectId("productId"), getProductById)
+  .get(optionalAuthenticate, validateObjectId("productId"), getProductById)
   .put(
     authenticate,
     authorize("admin"),

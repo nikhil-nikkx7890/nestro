@@ -68,6 +68,13 @@ export const getProducts = async (req, res) => {
     defaultSortOrder: "desc",
   });
 
+  // Anonymous and non-admin callers only ever see published products,
+  // regardless of any status-shaped value the request supplies — the
+  // safe default is what happens when nothing is specified (ADR-036).
+  if (req.user?.role !== "admin") {
+    filter.status = "published";
+  }
+
   const [products, total] = await Promise.all([
     Product.find(filter)
       .sort(sort)
@@ -102,6 +109,13 @@ export const getProductById = async (req, res) => {
     .populate("variantCount");
 
   if (!product) {
+    throw new AppError("Product not found.", 404);
+  }
+
+  // A non-admin caller gets the same 404 as a truly missing product —
+  // never a distinct "exists but you can't see it" response, which would
+  // leak the existence of unpublished products to an anonymous caller.
+  if (req.user?.role !== "admin" && product.status !== "published") {
     throw new AppError("Product not found.", 404);
   }
 

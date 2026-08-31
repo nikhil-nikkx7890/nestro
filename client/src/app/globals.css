@@ -3,3 +3,16 @@
 body {
   @apply bg-gray-50 text-gray-900 antialiased;
 }
+
+/*
+ * Storefront-only font tokens (ADR-038). These add new Tailwind utilities
+ * (font-heading, font-store-sans) without touching any existing token, so
+ * the admin panel — which never references them — is unaffected. The
+ * actual font files are loaded via next/font in app/(store)/layout.jsx,
+ * which sets --font-serif/--font-sans on the storefront's wrapper element;
+ * outside that wrapper these fall back to the plain serif/sans-serif here.
+ */
+@theme {
+  --font-heading: var(--font-serif), Georgia, serif;
+  --font-store-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
