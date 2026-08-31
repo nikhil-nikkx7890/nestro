@@ -30,13 +30,22 @@ export function AuthProvider({ children }) {
     return res.data;
   };
 
+  // Register also sets the auth cookie server-side (same as login) and
+  // returns the created user, so this mirrors login() exactly rather than
+  // requiring a separate login call right after registering.
+  const register = async (data) => {
+    const res = await authService.register(data);
+    setUser(res.data);
+    return res.data;
+  };
+
   const logout = async () => {
     await authService.logout();
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

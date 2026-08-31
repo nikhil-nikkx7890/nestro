@@ -9,22 +9,16 @@ import { toast } from "sonner";
 import clsx from "clsx";
 
 import { useAuth } from "@/context/AuthContext";
-import { loginSchema } from "./schemas/login.schema";
+import { registerSchema } from "./schemas/register.schema";
 
-// Admin lands in the admin panel; a customer (or anyone else) lands back
-// on the storefront — this same page now serves both login flows.
-const postLoginPath = (user) => (user?.role === "admin" ? "/admin" : "/products");
-
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
-  const { user, loading, login } = useAuth();
+  const { user, loading, register: registerUser } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Already logged in (e.g. cookie still valid from an earlier session) and
-  // landed on /login anyway — skip the form entirely.
   useEffect(() => {
     if (!loading && user) {
-      router.replace(postLoginPath(user));
+      router.replace(user.role === "admin" ? "/admin" : "/products");
     }
   }, [loading, user, router]);
 
@@ -33,23 +27,20 @@ export default function LoginPage() {
     handleSubmit,
     formState: { errors },
   } = useForm({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: "", password: "" },
+    resolver: zodResolver(registerSchema),
+    defaultValues: { name: "", email: "", password: "" },
   });
 
   const onSubmit = async (data) => {
     setIsSubmitting(true);
 
     try {
-      const user = await login(data);
-      toast.success(`Welcome back, ${user.name}`);
-      router.push(postLoginPath(user));
+      const newUser = await registerUser(data);
+      toast.success(`Welcome, ${newUser.name}`);
+      router.push("/products");
     } catch (error) {
-      // Backend sends { success: false, message: "..." } on 401/403/429 —
-      // errorHandler.js's shape, same one every other service call in this
-      // app already relies on for its own error toasts.
       const message =
-        error?.response?.data?.message || "Login failed. Please try again.";
+        error?.response?.data?.message || "Registration failed. Please try again.";
       toast.error(message);
     } finally {
       setIsSubmitting(false);
@@ -59,12 +50,37 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4">
       <div className="w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-bold tracking-tight">Nestro Admin</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Create an account</h1>
         <p className="mt-1 text-sm text-neutral-500">
-          Sign in to manage the store.
+          Join Nestro to shop, save favorites, and check out faster.
         </p>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5">
+          <div>
+            <label
+              htmlFor="name"
+              className="mb-2 block text-sm font-medium text-neutral-700"
+            >
+              Name
+            </label>
+
+            <input
+              type="text"
+              id="name"
+              {...register("name")}
+              placeholder="Your name"
+              className={clsx(
+                "w-full rounded-xl px-4 py-3 border outline-none transition",
+                errors.name
+                  ? "border-red-500"
+                  : "border-neutral-300 focus:border-neutral-900",
+              )}
+            />
+            {errors.name && (
+              <p className="mt-1 text-sm text-red-500">{errors.name.message}</p>
+            )}
+          </div>
+
           <div>
             <label
               htmlFor="email"
@@ -104,7 +120,7 @@ export default function LoginPage() {
               type="password"
               id="password"
               {...register("password")}
-              placeholder="••••••••"
+              placeholder="At least 8 characters"
               className={clsx(
                 "w-full rounded-xl px-4 py-3 border outline-none transition",
                 errors.password
@@ -124,14 +140,14 @@ export default function LoginPage() {
             disabled={isSubmitting}
             className="w-full rounded-xl bg-neutral-900 px-5 py-3 text-white transition hover:bg-neutral-800 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Signing in..." : "Sign In"}
+            {isSubmitting ? "Creating account..." : "Create Account"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-neutral-500">
-          New here?{" "}
-          <Link href="/register" className="font-medium text-neutral-900 hover:underline">
-            Create an account
+          Already have an account?{" "}
+          <Link href="/login" className="font-medium text-neutral-900 hover:underline">
+            Sign in
           </Link>
         </p>
       </div>
