@@ -114,14 +114,27 @@ Through Nestro, I aim to learn and practice:
 - dotenv
 - cors
 - nodemon
+- Zod (request validation)
+- Multer
+- Cloudinary (image upload & storage)
+- helmet
+- express-rate-limit
+- bcryptjs (password hashing)
+- jsonwebtoken (JWT authentication)
+- cookie-parser
+
+---
+
+## Testing
+
+- Jest
+- Supertest
+- mongodb-memory-server (in-memory MongoDB for integration tests — never touches real data)
 
 ---
 
 ## Planned Integrations
 
-- Multer
-- Cloudinary
-- JWT Authentication
 - Refresh Tokens
 
 ---
@@ -195,6 +208,26 @@ A reusable form used for both creating and updating categories.
 - Loading States
 - Error Handling
 - Toast Notifications
+
+---
+
+### Authentication & Authorization
+
+#### Backend
+
+- User Model with bcrypt-hashed passwords (never stored or returned in plain text)
+- JWT-based Authentication delivered via an httpOnly cookie (not readable by client-side JavaScript, not stored in localStorage)
+- Register, Login, Logout, and "Current User" endpoints
+- Re-verifies the logged-in user against the database on every request, rather than trusting a role embedded in the token — a role change or deactivation takes effect immediately
+- Role-Based Access Control — a reusable `authorize(...roles)` middleware, composed the same way across every protected route
+- Every write operation (Create, Update, Delete) across every module — Categories, Room Types, Brands, Materials, Colors, Products, Variants, and Image Upload — requires a logged-in Admin; all read operations remain public
+- A dedicated, stricter rate limiter on the login and register endpoints specifically, on top of the general API rate limit
+- Public registration always creates a Customer account — there is no way for a self-registered user to grant themselves Admin access
+- Idempotent admin-account seed script, kept deliberately separate from the Master Data seed script so reseeding test data never touches real admin accounts
+
+#### Frontend
+
+- Not yet built — backend is complete and fully tested; login/register UI is the next step
 
 ---
 
@@ -456,6 +489,16 @@ A full correctness and security review of the backend, completed before starting
 
 ---
 
+### Automated Testing
+
+53 Jest + Supertest integration tests across every backend module (Categories, Room Types, Brands, Materials, Colors, Products, Variants, and Authentication), covering the main success path and the most likely failure path for each route:
+
+- Runs against an in-memory MongoDB (`mongodb-memory-server`) that exists only for the duration of the test run — real data is never touched
+- Explicit coverage for the authorization layer itself: an unauthenticated request and a wrong-role request are both tested against a protected route, not just the "happy path"
+- Introduced incrementally alongside each module rather than deferred to the end
+
+---
+
 # 🚀 Roadmap
 
 ## Phase 1 — Admin Foundation
@@ -499,11 +542,12 @@ A full correctness and security review of the backend, completed before starting
 
 ## Phase 4 — Platform
 
-- Authentication
-- Authorization
-- Super Admin
-- Admin
-- Customer Accounts
+- ✅ Authentication (backend)
+- ✅ Authorization / RBAC (backend)
+- ✅ Admin
+- Customer Accounts (registration exists; account management UI not yet built)
+- Super Admin (deliberately deferred — no real use case yet with a single admin)
+- Login / Register UI (frontend)
 
 ---
 
@@ -573,6 +617,12 @@ Create a `.env` file inside the `server` directory.
 ```env
 PORT=5000
 MONGO_URI=your_mongodb_connection_string
+CLIENT_URL=http://localhost:3000
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
+JWT_SECRET=a_long_random_secret_string
+JWT_EXPIRES_IN=7d
 ```
 
 ---
@@ -662,7 +712,11 @@ Rather than only focusing on building features, I aim to understand the reasonin
 
 🟢 Product & Variant Management
 
-⚪ Authentication
+🟢 Authentication & Authorization (Backend)
+
+🟢 Automated Testing (53 Jest/Supertest tests)
+
+⚪ Authentication & Authorization (Frontend)
 
 ⚪ Customer Store
 
