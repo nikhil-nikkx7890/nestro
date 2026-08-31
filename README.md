@@ -227,7 +227,11 @@ A reusable form used for both creating and updating categories.
 
 #### Frontend
 
-- Not yet built — backend is complete and fully tested; login/register UI is the next step
+- Login Page (React Hook Form + Zod)
+- Global Auth State via React Context (checks for an existing session on load)
+- Route Guard on the Admin Panel — redirects to Login unless a logged-in Admin is confirmed
+- Logout, wired into the Admin Header
+- Register Page — not yet built; deferred until the Customer Store exists for a customer to actually register through
 
 ---
 
@@ -542,12 +546,12 @@ A full correctness and security review of the backend, completed before starting
 
 ## Phase 4 — Platform
 
-- ✅ Authentication (backend)
+- ✅ Authentication (backend + frontend)
 - ✅ Authorization / RBAC (backend)
 - ✅ Admin
-- Customer Accounts (registration exists; account management UI not yet built)
+- ✅ Login / Register UI (Login done; Register deferred to the Customer Store phase)
+- Customer Accounts (registration exists on the backend; account management UI not yet built)
 - Super Admin (deliberately deferred — no real use case yet with a single admin)
-- Login / Register UI (frontend)
 
 ---
 
@@ -712,11 +716,9 @@ Rather than only focusing on building features, I aim to understand the reasonin
 
 🟢 Product & Variant Management
 
-🟢 Authentication & Authorization (Backend)
+🟢 Authentication & Authorization (Backend + Frontend)
 
 🟢 Automated Testing (53 Jest/Supertest tests)
-
-⚪ Authentication & Authorization (Frontend)
 
 ⚪ Customer Store
 

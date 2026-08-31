@@ -1,10 +1,28 @@
-import {
-  Bell,
-  ChevronDown,
-  Search,
-} from "lucide-react";
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Bell, ChevronDown, LogOut, Search } from "lucide-react";
+import { toast } from "sonner";
+
+import { useAuth } from "@/context/AuthContext";
 
 export default function Header() {
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    toast.success("Logged out");
+    router.push("/login");
+  };
+
+  // Falls back gracefully if this ever renders before `user` is set —
+  // shouldn't happen in practice since the layout guard (admin/layout.js)
+  // only renders this once `user` is confirmed, but avoids a crash if it did.
+  const initial = user?.name?.charAt(0).toUpperCase() || "?";
+
   return (
     <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-neutral-200 bg-white px-8">
       {/* Search */}
@@ -34,28 +52,38 @@ export default function Header() {
 
         </button>
 
-        <button className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-neutral-100">
+        <div className="relative">
+          <button
+            onClick={() => setMenuOpen((prev) => !prev)}
+            className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-neutral-100"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900 font-semibold text-white">
+              {initial}
+            </div>
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900 font-semibold text-white">
-            A
-          </div>
+            <div className="text-left">
+              <p className="text-sm font-medium">{user?.name}</p>
 
-          <div className="text-left">
-            <p className="text-sm font-medium">
-              Admin
-            </p>
+              <p className="text-xs capitalize text-neutral-500">
+                {user?.role}
+              </p>
+            </div>
 
-            <p className="text-xs text-neutral-500">
-              Super Admin
-            </p>
-          </div>
+            <ChevronDown size={16} className="text-neutral-500" />
+          </button>
 
-          <ChevronDown
-            size={16}
-            className="text-neutral-500"
-          />
-
-        </button>
+          {menuOpen && (
+            <div className="absolute right-0 mt-2 w-40 overflow-hidden rounded-xl border border-neutral-200 bg-white shadow-lg">
+              <button
+                onClick={handleLogout}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-red-600 transition hover:bg-neutral-50"
+              >
+                <LogOut size={16} />
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
 
       </div>
 
