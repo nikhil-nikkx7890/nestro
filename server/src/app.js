@@ -12,6 +12,7 @@ import uploadRoutes from "./routes/upload.routes.js";
 import productRoutes from "./routes/product.routes.js";
 import productVariantRoutes from "./routes/productVariant.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import cartRoutes from "./routes/cart.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -48,6 +49,7 @@ app.use("/api/colors", colorRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api", productVariantRoutes);
+app.use("/api/cart", cartRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({

@@ -1,6 +1,7 @@
 import "./globals.css";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/context/AuthContext";
+import { CartProvider } from "@/context/CartContext";
 
 export const metadata = {
   title: "Nestro",
@@ -12,17 +13,19 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <AuthProvider>
-          {children}
-          <Toaster
-            position="top-right"
-            richColors
-            closeButton
-            toastOptions={{
-              classNames: {
-                closeButton: "!left-auto !right-2 !top-2",
-              },
-            }}
-          />
+          <CartProvider>
+            {children}
+            <Toaster
+              position="top-right"
+              richColors
+              closeButton
+              toastOptions={{
+                classNames: {
+                  closeButton: "!left-auto !right-2 !top-2",
+                },
+              }}
+            />
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>

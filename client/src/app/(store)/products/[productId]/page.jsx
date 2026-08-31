@@ -1,17 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import { Minus, Plus } from "lucide-react";
+import { toast } from "sonner";
 
 import { productService } from "@/services/product.service";
 import { variantService } from "@/services/variant.service";
 import { toTitleCase, formatPaise } from "@/utils/formatters";
+import { useAuth } from "@/context/AuthContext";
+import { useCart } from "@/context/CartContext";
 
 import VariantPicker from "./components/VariantPicker";
 
 export default function ProductDetailPage() {
   const { productId } = useParams();
+  const router = useRouter();
+  const { user } = useAuth();
+  const { addItem: addCartItem } = useCart();
 
   const [product, setProduct] = useState(null);
   const [variants, setVariants] = useState([]);
@@ -19,6 +26,8 @@ export default function ProductDetailPage() {
   const [activeImage, setActiveImage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -47,6 +56,31 @@ export default function ProductDetailPage() {
 
     fetchProduct();
   }, [productId]);
+
+  const isCustomer = user?.role === "customer";
+
+  const requireCustomerLogin = () => {
+    toast.error("Please log in to continue.");
+    router.push("/login");
+  };
+
+  const handleAddToCart = async () => {
+    if (!isCustomer) {
+      requireCustomerLogin();
+      return;
+    }
+    if (!selectedVariant) return;
+
+    try {
+      setIsAddingToCart(true);
+      await addCartItem(selectedVariant._id, quantity);
+      toast.success("Added to cart");
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to add to cart.");
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -175,6 +209,47 @@ export default function ProductDetailPage() {
             </p>
           )}
 
+          {selectedVariant && (
+            <div className="mt-6 flex items-center gap-4">
+              <div className="flex items-center gap-3 rounded-full border border-[#D8CDBB] px-2 py-1">
+                <button
+                  type="button"
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  disabled={quantity <= 1}
+                  className="p-1 text-[#5A5147] disabled:opacity-40"
+                  aria-label="Decrease quantity"
+                >
+                  <Minus size={14} />
+                </button>
+                <span className="w-4 text-center text-sm">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setQuantity((q) => Math.min(selectedVariant.stock, q + 1))
+                  }
+                  disabled={quantity >= selectedVariant.stock}
+                  className="p-1 text-[#5A5147] disabled:opacity-40"
+                  aria-label="Increase quantity"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={isOutOfStock || isAddingToCart}
+                className="flex-1 rounded-full bg-[#B15E3B] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#9A4F30] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isOutOfStock
+                  ? "Out of Stock"
+                  : isAddingToCart
+                    ? "Adding..."
+                    : "Add to Cart"}
+              </button>
+            </div>
+          )}
+
           {product.description && (
             <p className="mt-6 leading-relaxed text-[#5A5147]">
               {product.description}
@@ -188,6 +263,7 @@ export default function ProductDetailPage() {
               onSelect={(variant) => {
                 setSelectedVariant(variant);
                 setActiveImage(0);
+                setQuantity(1);
               }}
             />
           </div>
