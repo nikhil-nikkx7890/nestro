@@ -11,6 +11,7 @@ import { validateRequest } from "../middlewares/validateRequest.js";
 import { productVariantSchema } from "../validators/productVariant.validator.js";
 import { authenticate } from "../middlewares/authenticate.js";
 import { authorize } from "../middlewares/authorize.js";
+import { optionalAuthenticate } from "../middlewares/optionalAuthenticate.js";
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router
     validateRequest(productVariantSchema),
     createProductVariant,
   )
-  .get(validateObjectId("productId"), getVariantsByProduct);
+  .get(optionalAuthenticate, validateObjectId("productId"), getVariantsByProduct);
 
 // Flat — a variant has its own _id, no need to repeat product context
 router

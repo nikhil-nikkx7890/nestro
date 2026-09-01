@@ -105,6 +105,19 @@ export const createProductVariant = async (req, res) => {
 export const getVariantsByProduct = async (req, res) => {
   const { productId } = req.params;
 
+  const product = await Product.findById(productId);
+  if (!product) {
+    throw new AppError("Product not found.", 404);
+  }
+
+  // Same visibility rule as getProductById (ADR-036) — a non-admin caller
+  // must never see variant data (price, stock, SKU) for a product that
+  // isn't published, even though this is a separate endpoint from the
+  // product record itself.
+  if (req.user?.role !== "admin" && product.status !== "published") {
+    throw new AppError("Product not found.", 404);
+  }
+
   const { filter, sort, skip, limit, page } = buildQueryFeatures(req.query, {
     sortableFields: ["price", "stock", "createdAt"],
     defaultSortBy: "createdAt",

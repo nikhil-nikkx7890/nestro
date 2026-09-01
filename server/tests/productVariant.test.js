@@ -5,7 +5,7 @@ import Product from "../src/models/product.model.js";
 import ProductVariant from "../src/models/productVariant.model.js";
 import { connectTestDB, clearTestDB, disconnectTestDB } from "./setup/testDb.js";
 import { createMasterData } from "./fixtures/masterData.js";
-import { createAdminAgent } from "./fixtures/auth.js";
+import { createAdminAgent, createCustomerAgent } from "./fixtures/auth.js";
 
 beforeAll(async () => {
   await connectTestDB();
@@ -95,6 +95,78 @@ describe("POST /api/products/:productId/variants", () => {
     });
 
     expect(res.status).toBe(401);
+  });
+});
+
+describe("GET /api/products/:productId/variants", () => {
+  it("hides a draft product's variants from an anonymous caller (ADR-036 applied to variants)", async () => {
+    const masterData = await createMasterData();
+    const product = await createTestProduct(masterData); // defaults to status: "draft"
+    await ProductVariant.create({
+      product: product._id,
+      sku: "TEST-SKU-0001",
+      price: 100000,
+      material: masterData.material._id,
+      color: masterData.color._id,
+    });
+
+    const res = await request(app).get(`/api/products/${product._id}/variants`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("hides a draft product's variants from a logged-in customer", async () => {
+    const masterData = await createMasterData();
+    const product = await createTestProduct(masterData);
+    await ProductVariant.create({
+      product: product._id,
+      sku: "TEST-SKU-0001",
+      price: 100000,
+      material: masterData.material._id,
+      color: masterData.color._id,
+    });
+    const customerAgent = await createCustomerAgent();
+
+    const res = await customerAgent.get(`/api/products/${product._id}/variants`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns variants for a published product to an anonymous caller", async () => {
+    const masterData = await createMasterData();
+    const product = await createTestProduct(masterData);
+    product.status = "published";
+    await product.save();
+    await ProductVariant.create({
+      product: product._id,
+      sku: "TEST-SKU-0001",
+      price: 100000,
+      material: masterData.material._id,
+      color: masterData.color._id,
+    });
+
+    const res = await request(app).get(`/api/products/${product._id}/variants`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+  });
+
+  it("lets an admin see a draft product's variants", async () => {
+    const masterData = await createMasterData();
+    const product = await createTestProduct(masterData);
+    await ProductVariant.create({
+      product: product._id,
+      sku: "TEST-SKU-0001",
+      price: 100000,
+      material: masterData.material._id,
+      color: masterData.color._id,
+    });
+    const adminAgent = await createAdminAgent();
+
+    const res = await adminAgent.get(`/api/products/${product._id}/variants`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
   });
 });
 
