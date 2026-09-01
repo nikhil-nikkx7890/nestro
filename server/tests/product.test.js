@@ -343,4 +343,141 @@ describe("GET /api/products — filters (Category/Brand/Material/Color)", () => 
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveLength(0);
   });
+
+  it("filters by multiple categories at once, comma-separated (ADR-048 multi-select)", async () => {
+    const { category, nonMatching } = await setupFilterFixture();
+
+    const res = await request(app).get(
+      `/api/products?category=${category._id},${nonMatching.category}`,
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(2);
+  });
+
+  it("filters by roomType (ADR-048)", async () => {
+    const { matching } = await setupFilterFixture();
+    const { roomTypes } = matching;
+
+    const res = await request(app).get(`/api/products?roomType=${roomTypes[0]}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(2); // both fixture products share the same roomType
+  });
+
+  it("filters by price range, matching a product with a variant in range (ADR-048)", async () => {
+    await setupFilterFixture();
+
+    const res = await request(app).get("/api/products?minPrice=50000&maxPrice=150000");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(2); // both fixture variants are priced at 100000
+  });
+
+  it("excludes a product whose only variant falls outside the price range (ADR-048)", async () => {
+    await setupFilterFixture();
+
+    const res = await request(app).get("/api/products?minPrice=200000");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(0);
+  });
+
+  it("treats an empty price param as no constraint, not as zero (ADR-048)", async () => {
+    await setupFilterFixture();
+
+    const res = await request(app).get("/api/products?minPrice=&maxPrice=");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(2);
+  });
+
+  it("combines material and price as independent facets — a product needs a variant matching each, not necessarily the same one (ADR-048)", async () => {
+    const { matching, material } = await setupFilterFixture();
+
+    // Give "matching" a second variant, in the same material but a
+    // different color, priced outside the range — proves the price
+    // constraint isn't required to land on the *same* variant that
+    // satisfied the material constraint.
+    const extraColor = await Color.create({ name: "Extra Color", hexCode: "#123456" });
+    await ProductVariant.create({
+      product: matching._id,
+      sku: "MATCH-SKU-0002",
+      price: 999999,
+      material,
+      color: extraColor._id,
+    });
+
+    const res = await request(app).get(
+      `/api/products?material=${material._id}&minPrice=50000&maxPrice=150000`,
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.data[0].name).toBe("Matching Product");
+  });
+});
+
+describe("GET /api/products/filter-options", () => {
+  it("returns every active Category/Brand/RoomType/Material/Color with a real, published-only product count", async () => {
+    const { category, brand, roomType, material, color } = await createMasterData();
+    const draftOnlyCategory = await Category.create({ name: "Draft-Only Category" });
+
+    const published = await Product.create({
+      name: "Published Product",
+      category: category._id,
+      brand: brand._id,
+      roomTypes: [roomType._id],
+      status: "published",
+    });
+    await ProductVariant.create({
+      product: published._id,
+      sku: "PUB-SKU-0001",
+      price: 100000,
+      material: material._id,
+      color: color._id,
+    });
+
+    // A draft product referencing a different category must NOT count —
+    // filter-options counts are published-only.
+    await Product.create({
+      name: "Draft Product",
+      category: draftOnlyCategory._id,
+      brand: brand._id,
+      roomTypes: [roomType._id],
+      status: "draft",
+    });
+
+    const res = await request(app).get("/api/products/filter-options");
+
+    expect(res.status).toBe(200);
+
+    const categoryRow = res.body.data.categories.find(
+      (c) => c._id === category._id.toString(),
+    );
+    const draftCategoryRow = res.body.data.categories.find(
+      (c) => c._id === draftOnlyCategory._id.toString(),
+    );
+    const brandRow = res.body.data.brands.find((b) => b._id === brand._id.toString());
+    const roomTypeRow = res.body.data.roomTypes.find(
+      (r) => r._id === roomType._id.toString(),
+    );
+    const materialRow = res.body.data.materials.find(
+      (m) => m._id === material._id.toString(),
+    );
+    const colorRow = res.body.data.colors.find((c) => c._id === color._id.toString());
+
+    expect(categoryRow.count).toBe(1);
+    expect(draftCategoryRow.count).toBe(0);
+    expect(brandRow.count).toBe(1);
+    expect(roomTypeRow.count).toBe(1);
+    expect(materialRow.count).toBe(1);
+    expect(colorRow.count).toBe(1);
+  });
+
+  it("does not require authentication", async () => {
+    const res = await request(app).get("/api/products/filter-options");
+
+    expect(res.status).toBe(200);
+  });
 });

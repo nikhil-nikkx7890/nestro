@@ -7,6 +7,7 @@ import { categoryService } from "@/services/category.service";
 import { roomTypeService } from "@/services/roomType.service";
 import { productService } from "@/services/product.service";
 
+import HeroCarousel from "./components/HeroCarousel";
 import ShopByGrid from "./components/ShopByGrid";
 import ProductCard from "./products/components/ProductCard";
 
@@ -47,6 +48,8 @@ export default function HomePage() {
     <div>
       {!loading && (
         <>
+          <HeroCarousel categories={categories} />
+
           <ShopByGrid
             title="Shop by Category"
             items={categories}

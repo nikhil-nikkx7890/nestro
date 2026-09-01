@@ -2,6 +2,7 @@ import express from "express";
 import {
   createProduct,
   getProducts,
+  getProductFilterOptions,
   getProductById,
   updateProduct,
   deleteProduct,
@@ -24,6 +25,11 @@ router
     createProduct,
   )
   .get(optionalAuthenticate, getProducts);
+
+// Registered before /:productId so "filter-options" is never swallowed as
+// a productId param — counts are always published-only regardless of
+// caller, so no auth middleware is needed here (ADR-048).
+router.get("/filter-options", getProductFilterOptions);
 
 router
   .route("/:productId")

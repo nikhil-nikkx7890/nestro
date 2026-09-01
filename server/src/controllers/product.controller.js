@@ -4,12 +4,35 @@ import ProductVariant from "../models/productVariant.model.js";
 import Category from "../models/category.model.js";
 import Brand from "../models/brand.model.js";
 import RoomType from "../models/roomType.model.js";
+import Material from "../models/material.model.js";
+import Color from "../models/color.model.js";
 import AppError from "../utils/AppError.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
 
 const isValidObjectId = (value) =>
   typeof value === "string" && mongoose.Types.ObjectId.isValid(value);
+
+// A filter query param may now carry more than one id, comma-separated
+// (e.g. ?material=id1,id2) — this is the multi-select generalization of
+// ADR-040's original single-value filters (ADR-048).
+const parseIdList = (value) => {
+  if (!value) return [];
+  return String(value)
+    .split(",")
+    .map((v) => v.trim())
+    .filter(isValidObjectId);
+};
+
+// Guards against the empty-string coercion bug already fixed once
+// elsewhere in this app (Number("") === 0, which would wrongly become a
+// real $gte:0 constraint) — an absent or blank price param must mean
+// "no constraint", not "zero".
+const parsePrice = (value) => {
+  if (value === undefined || value === "") return undefined;
+  const num = Number(value);
+  return Number.isFinite(num) && num >= 0 ? num : undefined;
+};
 
 /**
  * Confirms that category, brand, and every roomTypes id in the payload
@@ -79,30 +102,60 @@ export const getProducts = async (req, res) => {
     filter.status = "published";
   }
 
-  // Category and Brand live directly on Product, so they filter the same
-  // way status does. Material and Color live on ProductVariant (ADR-005),
-  // so a Product only matches if at least one of its variants has that
-  // material/color — resolved with a lookup rather than a full aggregation
-  // pipeline, which stays reserved for buildQueryFeatures v2 (see the
-  // Filters decision in ADR-040).
-  const { category, brand, material, color } = req.query;
+  // Category, Brand, and RoomType all live directly on Product, so they
+  // filter the same way status does — RoomType is an array field, but
+  // Mongo's $in against an array field already matches "any element is in
+  // this list" natively, no special handling needed. Material and Color
+  // live on ProductVariant (ADR-005), so a Product only matches if it has
+  // at least one active variant satisfying every selected material/color
+  // constraint together — the same combined-variant contract ADR-040
+  // established for a single value each, generalized to $in (ADR-048).
+  const { category, brand, roomType, material, color, minPrice, maxPrice } = req.query;
 
-  if (isValidObjectId(category)) {
-    filter.category = category;
-  }
-  if (isValidObjectId(brand)) {
-    filter.brand = brand;
-  }
-  if (isValidObjectId(material) || isValidObjectId(color)) {
+  const categoryIds = parseIdList(category);
+  const brandIds = parseIdList(brand);
+  const roomTypeIds = parseIdList(roomType);
+  const materialIds = parseIdList(material);
+  const colorIds = parseIdList(color);
+
+  if (categoryIds.length) filter.category = { $in: categoryIds };
+  if (brandIds.length) filter.brand = { $in: brandIds };
+  if (roomTypeIds.length) filter.roomTypes = { $in: roomTypeIds };
+
+  let variantProductIds = null;
+  if (materialIds.length || colorIds.length) {
     // isActive: only a variant a shopper could actually buy counts as a
     // match — a product whose only matching variant was retired
     // (ADR-024's "deactivate, don't delete") shouldn't surface for a
     // filter implying that option is available.
     const variantMatch = { isActive: true };
-    if (isValidObjectId(material)) variantMatch.material = material;
-    if (isValidObjectId(color)) variantMatch.color = color;
+    if (materialIds.length) variantMatch.material = { $in: materialIds };
+    if (colorIds.length) variantMatch.color = { $in: colorIds };
+    variantProductIds = await ProductVariant.distinct("product", variantMatch);
+  }
 
-    const matchingProductIds = await ProductVariant.distinct("product", variantMatch);
+  // Price range is a genuinely independent facet from material/color — a
+  // product matches if ANY of its active variants falls in range,
+  // regardless of whether that's the same variant that matched
+  // material/color (ADR-048).
+  let priceProductIds = null;
+  const min = parsePrice(minPrice);
+  const max = parsePrice(maxPrice);
+  if (min !== undefined || max !== undefined) {
+    const priceMatch = { isActive: true, price: {} };
+    if (min !== undefined) priceMatch.price.$gte = min;
+    if (max !== undefined) priceMatch.price.$lte = max;
+    priceProductIds = await ProductVariant.distinct("product", priceMatch);
+  }
+
+  if (variantProductIds !== null || priceProductIds !== null) {
+    let matchingProductIds;
+    if (variantProductIds !== null && priceProductIds !== null) {
+      const priceSet = new Set(priceProductIds.map(String));
+      matchingProductIds = variantProductIds.filter((id) => priceSet.has(String(id)));
+    } else {
+      matchingProductIds = variantProductIds !== null ? variantProductIds : priceProductIds;
+    }
     filter._id = { $in: matchingProductIds };
   }
 
@@ -126,6 +179,113 @@ export const getProducts = async (req, res) => {
       page,
       limit,
       totalPages: Math.ceil(total / limit),
+    },
+  });
+};
+
+/**
+ * Powers the storefront's filter sidebar (ADR-048): every active
+ * Category/Brand/RoomType/Material/Color, each with a real, computed count
+ * of published products — never an invented number (ADR-041's rule
+ * applies here too, even though it's a filter count rather than a
+ * marketing stat).
+ *
+ * Deliberately static counts, not dynamic per-facet recomputation — each
+ * count answers "how many published products match this option on its
+ * own", not "how many would match if today's other checked filters also
+ * applied". A fully dynamic faceted count (recomputed per combination of
+ * active filters) is real aggregation-pipeline work with its own
+ * complexity budget; static counts are the right scope for what a
+ * filter sidebar needs today, consistent with ADR-002's delayed-
+ * refactoring principle. Revisit if the static/dynamic mismatch actually
+ * confuses shoppers in practice.
+ */
+export const getProductFilterOptions = async (req, res) => {
+  const [
+    categories,
+    brands,
+    roomTypes,
+    materials,
+    colors,
+    categoryCounts,
+    brandCounts,
+    roomTypeCounts,
+    materialCounts,
+    colorCounts,
+  ] = await Promise.all([
+    Category.find({ isActive: true }).select("name slug").sort("displayOrder"),
+    Brand.find({ isActive: true }).select("name slug").sort("name"),
+    RoomType.find({ isActive: true }).select("name slug").sort("name"),
+    Material.find({ isActive: true }).select("name slug").sort("name"),
+    Color.find({ isActive: true }).select("name hexCode").sort("name"),
+    Product.aggregate([
+      { $match: { status: "published" } },
+      { $group: { _id: "$category", count: { $sum: 1 } } },
+    ]),
+    Product.aggregate([
+      { $match: { status: "published" } },
+      { $group: { _id: "$brand", count: { $sum: 1 } } },
+    ]),
+    Product.aggregate([
+      { $match: { status: "published" } },
+      { $unwind: "$roomTypes" },
+      { $group: { _id: "$roomTypes", count: { $sum: 1 } } },
+    ]),
+    // Material/Color live on ProductVariant, so their count is "how many
+    // distinct published Products have at least one active variant with
+    // this material/color" — a $lookup back to Product is what makes
+    // "published" reachable from a Variant-rooted aggregation.
+    ProductVariant.aggregate([
+      { $match: { isActive: true } },
+      {
+        $lookup: {
+          from: "products",
+          localField: "product",
+          foreignField: "_id",
+          as: "product",
+        },
+      },
+      { $unwind: "$product" },
+      { $match: { "product.status": "published" } },
+      { $group: { _id: "$material", products: { $addToSet: "$product._id" } } },
+    ]),
+    ProductVariant.aggregate([
+      { $match: { isActive: true } },
+      {
+        $lookup: {
+          from: "products",
+          localField: "product",
+          foreignField: "_id",
+          as: "product",
+        },
+      },
+      { $unwind: "$product" },
+      { $match: { "product.status": "published" } },
+      { $group: { _id: "$color", products: { $addToSet: "$product._id" } } },
+    ]),
+  ]);
+
+  const toCountMap = (rows) => new Map(rows.map((r) => [String(r._id), r.count]));
+  const toDistinctCountMap = (rows) =>
+    new Map(rows.map((r) => [String(r._id), r.products.length]));
+
+  const categoryCountMap = toCountMap(categoryCounts);
+  const brandCountMap = toCountMap(brandCounts);
+  const roomTypeCountMap = toCountMap(roomTypeCounts);
+  const materialCountMap = toDistinctCountMap(materialCounts);
+  const colorCountMap = toDistinctCountMap(colorCounts);
+
+  const withCount = (docs, countMap) =>
+    docs.map((doc) => ({ ...doc.toObject(), count: countMap.get(String(doc._id)) || 0 }));
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      categories: withCount(categories, categoryCountMap),
+      brands: withCount(brands, brandCountMap),
+      roomTypes: withCount(roomTypes, roomTypeCountMap),
+      materials: withCount(materials, materialCountMap),
+      colors: withCount(colors, colorCountMap),
     },
   });
 };

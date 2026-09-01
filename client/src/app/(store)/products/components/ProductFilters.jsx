@@ -3,112 +3,211 @@
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 
-import { categoryService } from "@/services/category.service";
-import { brandService } from "@/services/brand.service";
-import { materialService } from "@/services/material.service";
-import { colorService } from "@/services/color.service";
+import { productService } from "@/services/product.service";
 
-const selectClasses =
-  "rounded-full border border-[#D8CDBB] bg-transparent px-4 py-2 text-sm text-[#2B2621] outline-none transition focus:border-[#B15E3B]";
+// ADR-048 — full match to the reference sidebar: checkboxes with live
+// (published-only, static — not recomputed per active filter combination)
+// counts, color swatches, and a price range. filters/onChange use arrays
+// for every multi-select field; minPrice/maxPrice are paise (ADR-023),
+// converted to/from rupees only at the input boundary in this component.
+const toRupees = (paise) => (paise ? String(Math.round(Number(paise) / 100)) : "");
+const toPaise = (rupees) => (rupees ? String(Math.round(Number(rupees) * 100)) : undefined);
+
+function FilterSection({ title, children, defaultOpen = true, scrollable = false }) {
+  return (
+    <details className="border-b border-[#E7E5E4] py-4" open={defaultOpen}>
+      <summary className="cursor-pointer list-none text-sm font-semibold text-[#1C1917]">
+        {title}
+      </summary>
+      <div className={`mt-3 space-y-2 ${scrollable ? "max-h-48 overflow-y-auto pr-1" : ""}`}>
+        {children}
+      </div>
+    </details>
+  );
+}
+
+function CheckboxOption({ checked, onToggle, label, count }) {
+  return (
+    <label className="flex cursor-pointer items-center justify-between gap-2 text-sm text-[#57534E] transition hover:text-[#1C1917]">
+      <span className="flex items-center gap-2">
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={onToggle}
+          className="h-4 w-4 rounded border-[#D6D3D1] text-[#8B5E3C] accent-[#8B5E3C]"
+        />
+        {label}
+      </span>
+      <span className="text-xs text-[#A8A29E]">{count}</span>
+    </label>
+  );
+}
 
 export default function ProductFilters({ filters, onChange }) {
-  const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
-  const [materials, setMaterials] = useState([]);
-  const [colors, setColors] = useState([]);
+  const [options, setOptions] = useState(null);
+  const [priceInputs, setPriceInputs] = useState({
+    min: toRupees(filters.minPrice),
+    max: toRupees(filters.maxPrice),
+  });
 
-  // Same pattern ProductForm.jsx (admin) already uses to populate its
-  // dropdowns — fetched once on mount, not tied to any form state.
   useEffect(() => {
-    const fetchOptions = async () => {
-      try {
-        const [categoryRes, brandRes, materialRes, colorRes] = await Promise.all([
-          categoryService.list({ limit: 100, isActive: true }),
-          brandService.list({ limit: 100, isActive: true }),
-          materialService.list({ limit: 100, isActive: true }),
-          colorService.list({ limit: 100, isActive: true }),
-        ]);
-        setCategories(categoryRes.data);
-        setBrands(brandRes.data);
-        setMaterials(materialRes.data);
-        setColors(colorRes.data);
-      } catch (err) {
-        console.error("Failed to load filter options:", err);
-      }
-    };
-    fetchOptions();
+    productService
+      .getFilterOptions()
+      .then((res) => setOptions(res.data))
+      .catch((err) => console.error("Failed to load filter options:", err));
   }, []);
 
-  const hasActiveFilters = Object.values(filters).some(Boolean);
+  // Keep the price inputs in sync if filters are cleared elsewhere (e.g.
+  // "Clear all") without fighting the user's own typing otherwise.
+  useEffect(() => {
+    if (!filters.minPrice && !filters.maxPrice) {
+      setPriceInputs({ min: "", max: "" });
+    }
+  }, [filters.minPrice, filters.maxPrice]);
 
-  const update = (key, value) => {
-    onChange({ ...filters, [key]: value || undefined });
+  const hasActiveFilters =
+    (filters.category?.length ?? 0) > 0 ||
+    (filters.brand?.length ?? 0) > 0 ||
+    (filters.roomType?.length ?? 0) > 0 ||
+    (filters.material?.length ?? 0) > 0 ||
+    (filters.color?.length ?? 0) > 0 ||
+    Boolean(filters.minPrice) ||
+    Boolean(filters.maxPrice);
+
+  const toggleValue = (key, id) => {
+    const current = filters[key] ?? [];
+    const next = current.includes(id) ? current.filter((v) => v !== id) : [...current, id];
+    onChange({ ...filters, [key]: next.length ? next : undefined });
   };
 
+  const applyPriceRange = () => {
+    onChange({
+      ...filters,
+      minPrice: toPaise(priceInputs.min),
+      maxPrice: toPaise(priceInputs.max),
+    });
+  };
+
+  const clearAll = () => {
+    onChange({});
+    setPriceInputs({ min: "", max: "" });
+  };
+
+  if (!options) {
+    return <aside className="text-sm text-[#78716C]">Loading filters...</aside>;
+  }
+
   return (
-    <div className="mb-10 flex flex-wrap items-center gap-3">
-      <select
-        value={filters.category || ""}
-        onChange={(e) => update("category", e.target.value)}
-        className={selectClasses}
-      >
-        <option value="">All Categories</option>
-        {categories.map((c) => (
-          <option key={c._id} value={c._id}>
-            {c.name}
-          </option>
-        ))}
-      </select>
+    <aside>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-[#8B5E3C]">
+          Filters
+        </h2>
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={clearAll}
+            className="flex items-center gap-1 text-xs text-[#78716C] transition hover:text-[#8B5E3C]"
+          >
+            <X size={12} />
+            Clear all
+          </button>
+        )}
+      </div>
 
-      <select
-        value={filters.brand || ""}
-        onChange={(e) => update("brand", e.target.value)}
-        className={selectClasses}
-      >
-        <option value="">All Brands</option>
-        {brands.map((b) => (
-          <option key={b._id} value={b._id}>
-            {b.name}
-          </option>
+      <FilterSection title="Category" scrollable>
+        {options.categories.map((c) => (
+          <CheckboxOption
+            key={c._id}
+            checked={(filters.category ?? []).includes(c._id)}
+            onToggle={() => toggleValue("category", c._id)}
+            label={c.name}
+            count={c.count}
+          />
         ))}
-      </select>
+      </FilterSection>
 
-      <select
-        value={filters.material || ""}
-        onChange={(e) => update("material", e.target.value)}
-        className={selectClasses}
-      >
-        <option value="">All Materials</option>
-        {materials.map((m) => (
-          <option key={m._id} value={m._id}>
-            {m.name}
-          </option>
+      <FilterSection title="Room Type" scrollable>
+        {options.roomTypes.map((r) => (
+          <CheckboxOption
+            key={r._id}
+            checked={(filters.roomType ?? []).includes(r._id)}
+            onToggle={() => toggleValue("roomType", r._id)}
+            label={r.name}
+            count={r.count}
+          />
         ))}
-      </select>
+      </FilterSection>
 
-      <select
-        value={filters.color || ""}
-        onChange={(e) => update("color", e.target.value)}
-        className={selectClasses}
-      >
-        <option value="">All Colors</option>
-        {colors.map((c) => (
-          <option key={c._id} value={c._id}>
-            {c.name}
-          </option>
+      <FilterSection title="Brand" defaultOpen={false} scrollable>
+        {options.brands.map((b) => (
+          <CheckboxOption
+            key={b._id}
+            checked={(filters.brand ?? []).includes(b._id)}
+            onToggle={() => toggleValue("brand", b._id)}
+            label={b.name}
+            count={b.count}
+          />
         ))}
-      </select>
+      </FilterSection>
 
-      {hasActiveFilters && (
-        <button
-          type="button"
-          onClick={() => onChange({})}
-          className="flex items-center gap-1 text-sm text-[#8A8071] transition hover:text-[#B15E3B]"
-        >
-          <X size={14} />
-          Clear filters
-        </button>
-      )}
-    </div>
+      <FilterSection title="Price Range">
+        <div className="flex items-center gap-2">
+          <input
+            type="number"
+            min="0"
+            placeholder="₹0"
+            value={priceInputs.min}
+            onChange={(e) => setPriceInputs((p) => ({ ...p, min: e.target.value }))}
+            onBlur={applyPriceRange}
+            onKeyDown={(e) => e.key === "Enter" && applyPriceRange()}
+            className="w-full rounded-lg border border-[#D6D3D1] bg-transparent px-3 py-1.5 text-sm text-[#1C1917] outline-none focus:border-[#8B5E3C]"
+          />
+          <span className="text-[#A8A29E]">—</span>
+          <input
+            type="number"
+            min="0"
+            placeholder="Any"
+            value={priceInputs.max}
+            onChange={(e) => setPriceInputs((p) => ({ ...p, max: e.target.value }))}
+            onBlur={applyPriceRange}
+            onKeyDown={(e) => e.key === "Enter" && applyPriceRange()}
+            className="w-full rounded-lg border border-[#D6D3D1] bg-transparent px-3 py-1.5 text-sm text-[#1C1917] outline-none focus:border-[#8B5E3C]"
+          />
+        </div>
+      </FilterSection>
+
+      <FilterSection title="Material" scrollable>
+        {options.materials.map((m) => (
+          <CheckboxOption
+            key={m._id}
+            checked={(filters.material ?? []).includes(m._id)}
+            onToggle={() => toggleValue("material", m._id)}
+            label={m.name}
+            count={m.count}
+          />
+        ))}
+      </FilterSection>
+
+      <FilterSection title="Color">
+        <div className="flex flex-wrap gap-3 pt-1">
+          {options.colors.map((c) => {
+            const isSelected = (filters.color ?? []).includes(c._id);
+            return (
+              <button
+                key={c._id}
+                type="button"
+                title={`${c.name} (${c.count})`}
+                onClick={() => toggleValue("color", c._id)}
+                style={{ backgroundColor: c.hexCode }}
+                className={`h-7 w-7 rounded-full border-2 transition ${
+                  isSelected ? "border-[#8B5E3C] ring-2 ring-[#8B5E3C]/30" : "border-[#E7E5E4]"
+                }`}
+              />
+            );
+          })}
+        </div>
+      </FilterSection>
+    </aside>
   );
 }
