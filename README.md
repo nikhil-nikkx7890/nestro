@@ -40,7 +40,7 @@ The long-term vision consists of multiple client applications sharing a common b
 Current architecture includes:
 
 - Admin Application
-- Customer Store (planned)
+- Customer Store
 
 Future expansion may include:
 
@@ -228,10 +228,36 @@ A reusable form used for both creating and updating categories.
 #### Frontend
 
 - Login Page (React Hook Form + Zod)
+- Register Page (customer sign-up, mirrors the Login page's pattern)
 - Global Auth State via React Context (checks for an existing session on load)
 - Route Guard on the Admin Panel — redirects to Login unless a logged-in Admin is confirmed
+- Role-based Post-login Redirect — Admin lands on the admin panel, Customer lands on the storefront
 - Logout, wired into the Admin Header
-- Register Page — not yet built; deferred until the Customer Store exists for a customer to actually register through
+
+---
+
+### Customer Store
+
+#### Backend
+
+- `optionalAuthenticate` middleware — a request can be anonymous, a logged-in Customer, or a logged-in Admin, and each sees different data from the same route without three separate endpoints
+- Product Listing and Product Detail respect this: an anonymous or Customer caller only ever sees `published` products; an Admin sees every status, exactly like the admin panel already did
+- Filtering by Category, Brand, Material, and Color (Material/Color reached via a Variant lookup, since they live on the Variant, not the Product)
+- Cart and Wishlist — Customer-only, a logged-in Admin is explicitly forbidden rather than just unauthenticated. Cart stores a live reference to the variant (price/stock always reflect the current value, never a stale snapshot) and validates stock and active status on every add/update
+- Real, computed product counts per Category and Room Type (no hardcoded placeholder)
+- A minimal Contact-message endpoint (stores the submission; no email integration)
+- A Profile-update endpoint for a Customer to edit their own name
+
+#### Frontend
+
+- Its own route group and layout (Navbar/Footer), visually distinct from the admin panel
+- Homepage — hero, Shop by Category / Shop by Room (real counts), New Arrivals
+- Product Listing with filters, Product Detail with a variant/color picker, Add to Cart, and a Wishlist toggle
+- Cart page — quantity control, live subtotal, remove item
+- Wishlist page
+- About and Contact pages
+- Account/Profile page — edit name, an honest empty state for Order History (no orders can exist yet — Commerce isn't built)
+- No fabricated content anywhere on the storefront — no invented reviews, ratings, or business statistics; only real, computable data is shown
 
 ---
 
@@ -288,20 +314,25 @@ Nestro/
 │ ├── src/
 │ │ ├── app/
 │ │ ├── components/
+│ │ ├── context/
+│ │ ├── hooks/
 │ │ ├── services/
 │ │ ├── utils/
-│ │ ├── lib/
-│ │ └── hooks/ (future)
+│ │ └── lib/
 │
 ├── server/
 │ ├── src/
+│ │ ├── config/
 │ │ ├── controllers/
 │ │ ├── middlewares/
 │ │ ├── models/
 │ │ ├── routes/
+│ │ ├── scripts/
 │ │ ├── utils/
+│ │ ├── validators/
 │ │ ├── app.js
 │ │ └── server.js
+│ └── tests/
 │
 └── README.md
 
@@ -495,11 +526,22 @@ A full correctness and security review of the backend, completed before starting
 
 ### Automated Testing
 
-53 Jest + Supertest integration tests across every backend module (Categories, Room Types, Brands, Materials, Colors, Products, Variants, and Authentication), covering the main success path and the most likely failure path for each route:
+101 Jest + Supertest integration tests across 11 suites (Categories, Room Types, Brands, Materials, Colors, Products, Variants, Authentication, Cart, Wishlist, and Contact), covering the main success path and the most likely failure path for each route:
 
 - Runs against an in-memory MongoDB (`mongodb-memory-server`) that exists only for the duration of the test run — real data is never touched
 - Explicit coverage for the authorization layer itself: an unauthenticated request and a wrong-role request are both tested against a protected route, not just the "happy path"
+- Regression tests for a real access-control gap found and fixed in a pre-deployment security audit
 - Introduced incrementally alongside each module rather than deferred to the end
+
+---
+
+### Pre-Deployment Security Audit
+
+A full-codebase review carried out ahead of the first deployment, separate from any single feature:
+
+- Found and fixed a real access-control gap — a variant-listing endpoint could leak an unpublished product's price, stock, and SKU because it was missing a status check its sibling endpoint already had
+- Centralized error handling on the image upload endpoint, matching the pattern used everywhere else instead of returning a raw internal error message
+- Added a whitelist for the upload endpoint's folder parameter instead of accepting an unvalidated string
 
 ---
 
@@ -534,13 +576,14 @@ A full correctness and security review of the backend, completed before starting
 
 ## Phase 3 — Customer Store
 
-- Home Page
-- Product Listing
-- Product Details
-- Search
-- Filters
-- Wishlist
-- Shopping Cart
+- ✅ Home Page
+- ✅ Product Listing
+- ✅ Product Details
+- ✅ Filters
+- ✅ Wishlist
+- ✅ Shopping Cart
+- ✅ About / Contact / Account pages
+- Site-wide Search (filters are done; a dedicated search bar is not)
 
 ---
 
@@ -549,8 +592,8 @@ A full correctness and security review of the backend, completed before starting
 - ✅ Authentication (backend + frontend)
 - ✅ Authorization / RBAC (backend)
 - ✅ Admin
-- ✅ Login / Register UI (Login done; Register deferred to the Customer Store phase)
-- Customer Accounts (registration exists on the backend; account management UI not yet built)
+- ✅ Login / Register UI
+- ✅ Customer Accounts (registration, login, and a profile page to edit their name)
 - Super Admin (deliberately deferred — no real use case yet with a single admin)
 
 ---
@@ -718,9 +761,11 @@ Rather than only focusing on building features, I aim to understand the reasonin
 
 🟢 Authentication & Authorization (Backend + Frontend)
 
-🟢 Automated Testing (53 Jest/Supertest tests)
+🟢 Customer Store (Listing, Filters, Product Detail, Cart, Wishlist, Home/About/Contact/Account)
 
-⚪ Customer Store
+🟢 Automated Testing (101 Jest/Supertest tests)
+
+🟢 Pre-Deployment Security Audit
 
 ⚪ Orders
 
