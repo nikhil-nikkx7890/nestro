@@ -5,7 +5,7 @@ export default function VariantPicker({ variants, selectedVariant, onSelect }) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-medium text-[#2B2621]">
+      <p className="text-sm font-medium text-[#1C1917]">
         Color &amp; Material
       </p>
 
@@ -20,16 +20,16 @@ export default function VariantPicker({ variants, selectedVariant, onSelect }) {
               onClick={() => onSelect(variant)}
               disabled={!variant.isActive}
               className={clsx(
-                "flex items-center gap-2 rounded-full border px-4 py-2 text-sm transition",
+                "flex items-center gap-2 rounded-lg border px-4 py-2 text-sm transition",
                 isSelected
-                  ? "border-[#B15E3B] bg-[#B15E3B]/10 text-[#B15E3B]"
-                  : "border-[#D8CDBB] text-[#5A5147] hover:border-[#B15E3B]",
+                  ? "border-[#8B5E3C] bg-[#8B5E3C]/10 text-[#8B5E3C]"
+                  : "border-[#D6D3D1] text-[#57534E] hover:border-[#8B5E3C]",
                 !variant.isActive && "cursor-not-allowed opacity-40",
               )}
             >
               {variant.color?.hexCode && (
                 <span
-                  className="h-3.5 w-3.5 rounded-full border border-[#D8CDBB]"
+                  className="h-3.5 w-3.5 rounded-full border border-[#D6D3D1]"
                   style={{ backgroundColor: variant.color.hexCode }}
                 />
               )}

@@ -5,14 +5,24 @@ body {
 }
 
 /*
- * Storefront-only font tokens (ADR-038). These add new Tailwind utilities
- * (font-heading, font-store-sans) without touching any existing token, so
- * the admin panel — which never references them — is unaffected. The
- * actual font files are loaded via next/font in app/(store)/layout.jsx,
- * which sets --font-serif/--font-sans on the storefront's wrapper element;
- * outside that wrapper these fall back to the plain serif/sans-serif here.
+ * Storefront-only font classes (ADR-038, revised — see ADR-044).
+ * Plain CSS rules rather than @theme-generated utilities: Tailwind v4 only
+ * auto-generates font-family utilities for its three built-in theme keys
+ * (--font-sans/--font-serif/--font-mono) — a custom key like
+ * --font-heading does NOT produce a matching `.font-heading` utility the
+ * way --color-* custom keys produce color utilities. That silently left
+ * every `font-heading`/`font-store-sans` class in the storefront doing
+ * nothing since ADR-038 (confirmed via computed styles: real system-font
+ * fallback, not Inter). Declaring the classes directly here is guaranteed
+ * to work regardless of that JIT namespace quirk.
+ *
+ * Both point at the same Inter family, loaded via next/font in
+ * app/(store)/layout.jsx, which sets --font-sans on the storefront's
+ * wrapper element; font-heading exists as its own class so headings can
+ * still be retargeted independently of body text later. The admin panel
+ * never references either class, so it's unaffected.
  */
-@theme {
-  --font-heading: var(--font-serif), Georgia, serif;
-  --font-store-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+.font-heading,
+.font-store-sans {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
 }

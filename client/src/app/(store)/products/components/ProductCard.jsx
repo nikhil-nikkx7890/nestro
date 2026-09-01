@@ -8,7 +8,7 @@ export default function ProductCard({ product }) {
 
   return (
     <Link href={`/products/${product._id}`} className="group block">
-      <div className="relative aspect-square overflow-hidden rounded-2xl bg-[#EFE7D8]">
+      <div className="relative aspect-square overflow-hidden rounded-2xl bg-[#F5F5F4]">
         {image?.url ? (
           <Image
             src={image.url}
@@ -18,7 +18,7 @@ export default function ProductCard({ product }) {
             className="object-cover transition duration-500 group-hover:scale-105"
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center text-sm text-[#B3A88F]">
+          <div className="flex h-full w-full items-center justify-center text-sm text-[#A8A29E]">
             No image
           </div>
         )}
@@ -26,15 +26,15 @@ export default function ProductCard({ product }) {
 
       <div className="mt-4 space-y-1">
         {product.category?.name && (
-          <p className="text-xs uppercase tracking-wide text-[#B15E3B]">
+          <p className="text-xs uppercase tracking-wide text-[#8B5E3C]">
             {product.category.name}
           </p>
         )}
-        <h3 className="font-heading text-lg text-[#2B2621]">
+        <h3 className="font-heading text-lg text-[#1C1917]">
           {toTitleCase(product.name)}
         </h3>
         {product.brand?.name && (
-          <p className="text-sm text-[#8A8071]">{product.brand.name}</p>
+          <p className="text-sm text-[#78716C]">{product.brand.name}</p>
         )}
       </div>
     </Link>

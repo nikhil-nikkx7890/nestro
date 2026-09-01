@@ -14,11 +14,11 @@ function IconLink({ href, count, label, children }) {
     <Link
       href={href}
       aria-label={label}
-      className="relative text-[#5A5147] transition hover:text-[#B15E3B]"
+      className="relative text-[#57534E] transition hover:text-[#8B5E3C]"
     >
       {children}
       {count > 0 && (
-        <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#B15E3B] px-1 text-[10px] font-medium text-white">
+        <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#8B5E3C] px-1 text-[10px] font-medium text-white">
           {count}
         </span>
       )}
@@ -41,11 +41,11 @@ export default function Navbar() {
   };
 
   return (
-    <header className="border-b border-[#E7DFD3]">
+    <header className="border-b border-[#E7E5E4]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 sm:px-10">
         <Link
           href="/"
-          className="font-heading text-2xl font-semibold tracking-tight text-[#2B2621]"
+          className="font-heading text-2xl font-semibold tracking-tight text-[#1C1917]"
         >
           Nestro
         </Link>
@@ -53,21 +53,21 @@ export default function Navbar() {
         <nav className="flex items-center gap-6 sm:gap-8">
           <Link
             href="/products"
-            className="text-sm font-medium text-[#5A5147] transition hover:text-[#B15E3B]"
+            className="text-sm font-medium text-[#57534E] transition hover:text-[#8B5E3C]"
           >
             Shop
           </Link>
 
           <Link
             href="/about"
-            className="hidden text-sm font-medium text-[#5A5147] transition hover:text-[#B15E3B] sm:inline"
+            className="hidden text-sm font-medium text-[#57534E] transition hover:text-[#8B5E3C] sm:inline"
           >
             About
           </Link>
 
           <Link
             href="/contact"
-            className="hidden text-sm font-medium text-[#5A5147] transition hover:text-[#B15E3B] sm:inline"
+            className="hidden text-sm font-medium text-[#57534E] transition hover:text-[#8B5E3C] sm:inline"
           >
             Contact
           </Link>
@@ -86,7 +86,7 @@ export default function Navbar() {
           {isCustomer && (
             <Link
               href="/account"
-              className="flex items-center gap-2 text-sm font-medium text-[#5A5147] transition hover:text-[#B15E3B]"
+              className="flex items-center gap-2 text-sm font-medium text-[#57534E] transition hover:text-[#8B5E3C]"
             >
               <User size={18} />
               <span className="hidden sm:inline">{user.name.split(" ")[0]}</span>
@@ -96,7 +96,7 @@ export default function Navbar() {
           {!loading && user?.role === "admin" && (
             <Link
               href="/admin"
-              className="flex items-center gap-2 text-sm font-medium text-[#5A5147] transition hover:text-[#B15E3B]"
+              className="flex items-center gap-2 text-sm font-medium text-[#57534E] transition hover:text-[#8B5E3C]"
             >
               <User size={18} />
               <span className="hidden sm:inline">{user.name.split(" ")[0]}</span>
@@ -107,7 +107,7 @@ export default function Navbar() {
             <button
               type="button"
               onClick={handleLogout}
-              className="text-sm font-medium text-[#5A5147] transition hover:text-[#B15E3B]"
+              className="text-sm font-medium text-[#57534E] transition hover:text-[#8B5E3C]"
             >
               Logout
             </button>
@@ -116,7 +116,7 @@ export default function Navbar() {
           {!loading && !user && (
             <Link
               href="/login"
-              className="flex items-center gap-2 text-sm font-medium text-[#5A5147] transition hover:text-[#B15E3B]"
+              className="flex items-center gap-2 text-sm font-medium text-[#57534E] transition hover:text-[#8B5E3C]"
             >
               <User size={18} />
               <span className="hidden sm:inline">Login</span>

@@ -17,7 +17,7 @@ export default function WishlistPage() {
 
   if (!ready) {
     return (
-      <div className="mx-auto max-w-6xl px-6 py-24 text-center text-[#8A8071] sm:px-10">
+      <div className="mx-auto max-w-6xl px-6 py-24 text-center text-[#78716C] sm:px-10">
         Loading...
       </div>
     );
@@ -36,14 +36,14 @@ export default function WishlistPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-14 sm:px-10">
-      <h1 className="font-heading text-4xl text-[#2B2621]">Your Wishlist</h1>
+      <h1 className="font-heading text-4xl text-[#1C1917]">Your Wishlist</h1>
 
       {products.length === 0 ? (
         <div className="mt-12 text-center">
-          <p className="text-[#8A8071]">Nothing saved yet.</p>
+          <p className="text-[#78716C]">Nothing saved yet.</p>
           <Link
             href="/products"
-            className="mt-4 inline-block text-sm font-medium text-[#B15E3B] hover:underline"
+            className="mt-4 inline-block text-sm font-medium text-[#8B5E3C] hover:underline"
           >
             Browse products
           </Link>
@@ -57,7 +57,7 @@ export default function WishlistPage() {
                 disabled={pendingId === product._id}
                 onClick={() => remove(product._id)}
                 aria-label="Remove from wishlist"
-                className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[#F7F2EA] text-[#B15E3B] shadow-sm transition hover:bg-white disabled:opacity-40"
+                className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[#F8F5F1] text-[#8B5E3C] shadow-sm transition hover:bg-white disabled:opacity-40"
               >
                 <Heart size={16} fill="currentColor" />
               </button>

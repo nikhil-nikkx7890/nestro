@@ -108,7 +108,7 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-6xl px-6 py-24 text-center text-[#8A8071] sm:px-10">
+      <div className="mx-auto max-w-6xl px-6 py-24 text-center text-[#78716C] sm:px-10">
         Loading...
       </div>
     );
@@ -117,10 +117,10 @@ export default function ProductDetailPage() {
   if (notFound || !product) {
     return (
       <div className="mx-auto max-w-6xl px-6 py-24 text-center sm:px-10">
-        <h1 className="font-heading text-3xl text-[#2B2621]">
+        <h1 className="font-heading text-3xl text-[#1C1917]">
           Product not found
         </h1>
-        <p className="mt-3 text-[#8A8071]">
+        <p className="mt-3 text-[#78716C]">
           This product may be unavailable or no longer exists.
         </p>
       </div>
@@ -143,7 +143,7 @@ export default function ProductDetailPage() {
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
         {/* Gallery */}
         <div>
-          <div className="relative aspect-square overflow-hidden rounded-2xl bg-[#EFE7D8]">
+          <div className="relative aspect-square overflow-hidden rounded-2xl bg-[#F5F5F4]">
             {displayImage?.url ? (
               <Image
                 src={displayImage.url}
@@ -154,7 +154,7 @@ export default function ProductDetailPage() {
                 className="object-cover"
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-sm text-[#B3A88F]">
+              <div className="flex h-full w-full items-center justify-center text-sm text-[#A8A29E]">
                 No image
               </div>
             )}
@@ -169,7 +169,7 @@ export default function ProductDetailPage() {
                   onClick={() => setActiveImage(index)}
                   className={`relative h-20 w-20 overflow-hidden rounded-xl border-2 transition ${
                     index === activeImage
-                      ? "border-[#B15E3B]"
+                      ? "border-[#8B5E3C]"
                       : "border-transparent"
                   }`}
                 >
@@ -189,13 +189,13 @@ export default function ProductDetailPage() {
         {/* Details */}
         <div>
           {product.category?.name && (
-            <p className="text-xs uppercase tracking-wide text-[#B15E3B]">
+            <p className="text-xs uppercase tracking-wide text-[#8B5E3C]">
               {product.category.name}
             </p>
           )}
 
           <div className="mt-2 flex items-start justify-between gap-4">
-            <h1 className="font-heading text-4xl text-[#2B2621]">
+            <h1 className="font-heading text-4xl text-[#1C1917]">
               {toTitleCase(product.name)}
             </h1>
 
@@ -206,7 +206,7 @@ export default function ProductDetailPage() {
               aria-label={
                 isWishlisted(productId) ? "Remove from wishlist" : "Add to wishlist"
               }
-              className="mt-1 shrink-0 text-[#B15E3B] transition disabled:opacity-40"
+              className="mt-1 shrink-0 text-[#8B5E3C] transition disabled:opacity-40"
             >
               <Heart
                 size={26}
@@ -216,16 +216,16 @@ export default function ProductDetailPage() {
           </div>
 
           {product.brand?.name && (
-            <p className="mt-2 text-[#8A8071]">{product.brand.name}</p>
+            <p className="mt-2 text-[#78716C]">{product.brand.name}</p>
           )}
 
           {selectedVariant && (
             <div className="mt-6 flex items-baseline gap-3">
-              <span className="text-2xl font-semibold text-[#2B2621]">
+              <span className="text-2xl font-semibold text-[#1C1917]">
                 {formatPaise(selectedVariant.price)}
               </span>
               {selectedVariant.compareAtPrice && (
-                <span className="text-lg text-[#B3A88F] line-through">
+                <span className="text-lg text-[#A8A29E] line-through">
                   {formatPaise(selectedVariant.compareAtPrice)}
                 </span>
               )}
@@ -239,7 +239,7 @@ export default function ProductDetailPage() {
                   ? "text-red-600"
                   : isLowStock
                     ? "text-amber-600"
-                    : "text-[#5A5147]"
+                    : "text-[#57534E]"
               }`}
             >
               {isOutOfStock
@@ -252,12 +252,12 @@ export default function ProductDetailPage() {
 
           {selectedVariant && (
             <div className="mt-6 flex items-center gap-4">
-              <div className="flex items-center gap-3 rounded-full border border-[#D8CDBB] px-2 py-1">
+              <div className="flex items-center gap-3 rounded-full border border-[#D6D3D1] px-2 py-1">
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
                   disabled={quantity <= 1}
-                  className="p-1 text-[#5A5147] disabled:opacity-40"
+                  className="p-1 text-[#57534E] disabled:opacity-40"
                   aria-label="Decrease quantity"
                 >
                   <Minus size={14} />
@@ -269,7 +269,7 @@ export default function ProductDetailPage() {
                     setQuantity((q) => Math.min(selectedVariant.stock, q + 1))
                   }
                   disabled={quantity >= selectedVariant.stock}
-                  className="p-1 text-[#5A5147] disabled:opacity-40"
+                  className="p-1 text-[#57534E] disabled:opacity-40"
                   aria-label="Increase quantity"
                 >
                   <Plus size={14} />
@@ -280,7 +280,7 @@ export default function ProductDetailPage() {
                 type="button"
                 onClick={handleAddToCart}
                 disabled={isOutOfStock || isAddingToCart}
-                className="flex-1 rounded-full bg-[#B15E3B] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#9A4F30] disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex-1 rounded-lg bg-[#8B5E3C] px-6 py-3 text-sm font-medium text-white transition hover:bg-[#6E4A2F] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isOutOfStock
                   ? "Out of Stock"
@@ -292,7 +292,7 @@ export default function ProductDetailPage() {
           )}
 
           {product.description && (
-            <p className="mt-6 leading-relaxed text-[#5A5147]">
+            <p className="mt-6 leading-relaxed text-[#57534E]">
               {product.description}
             </p>
           )}
@@ -310,15 +310,15 @@ export default function ProductDetailPage() {
           </div>
 
           {product.specifications?.length > 0 && (
-            <div className="mt-10 border-t border-[#E7DFD3] pt-8">
-              <h2 className="font-heading text-xl text-[#2B2621]">
+            <div className="mt-10 border-t border-[#E7E5E4] pt-8">
+              <h2 className="font-heading text-xl text-[#1C1917]">
                 Specifications
               </h2>
               <dl className="mt-4 space-y-3">
                 {product.specifications.map((spec, index) => (
                   <div key={index} className="flex justify-between text-sm">
-                    <dt className="text-[#8A8071]">{spec.key}</dt>
-                    <dd className="text-[#2B2621]">{spec.value}</dd>
+                    <dt className="text-[#78716C]">{spec.key}</dt>
+                    <dd className="text-[#1C1917]">{spec.value}</dd>
                   </div>
                 ))}
               </dl>

@@ -17,7 +17,7 @@ export default function CartPage() {
 
   if (!ready) {
     return (
-      <div className="mx-auto max-w-4xl px-6 py-24 text-center text-[#8A8071] sm:px-10">
+      <div className="mx-auto max-w-4xl px-6 py-24 text-center text-[#78716C] sm:px-10">
         Loading...
       </div>
     );
@@ -50,14 +50,14 @@ export default function CartPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-14 sm:px-10">
-      <h1 className="font-heading text-4xl text-[#2B2621]">Your Cart</h1>
+      <h1 className="font-heading text-4xl text-[#1C1917]">Your Cart</h1>
 
       {cart.items.length === 0 ? (
         <div className="mt-12 text-center">
-          <p className="text-[#8A8071]">Your cart is empty.</p>
+          <p className="text-[#78716C]">Your cart is empty.</p>
           <Link
             href="/products"
-            className="mt-4 inline-block text-sm font-medium text-[#B15E3B] hover:underline"
+            className="mt-4 inline-block text-sm font-medium text-[#8B5E3C] hover:underline"
           >
             Continue shopping
           </Link>
@@ -72,9 +72,9 @@ export default function CartPage() {
               return (
                 <div
                   key={variant._id}
-                  className="flex gap-4 border-b border-[#E7DFD3] pb-6"
+                  className="flex gap-4 border-b border-[#E7E5E4] pb-6"
                 >
-                  <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#EFE7D8]">
+                  <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl bg-[#F5F5F4]">
                     {image?.url && (
                       <Image
                         src={image.url}
@@ -88,23 +88,23 @@ export default function CartPage() {
 
                   <div className="flex flex-1 flex-col justify-between">
                     <div>
-                      <h3 className="font-heading text-lg text-[#2B2621]">
+                      <h3 className="font-heading text-lg text-[#1C1917]">
                         {toTitleCase(variant.product?.name || "")}
                       </h3>
-                      <p className="text-sm text-[#8A8071]">
+                      <p className="text-sm text-[#78716C]">
                         {variant.material?.name} &middot; {variant.color?.name}
                       </p>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3 rounded-full border border-[#D8CDBB] px-2 py-1">
+                      <div className="flex items-center gap-3 rounded-full border border-[#D6D3D1] px-2 py-1">
                         <button
                           type="button"
                           disabled={isPending}
                           onClick={() =>
                             changeQuantity(variant._id, quantity - 1, variant.stock)
                           }
-                          className="p-1 text-[#5A5147] disabled:opacity-40"
+                          className="p-1 text-[#57534E] disabled:opacity-40"
                           aria-label="Decrease quantity"
                         >
                           <Minus size={14} />
@@ -116,7 +116,7 @@ export default function CartPage() {
                           onClick={() =>
                             changeQuantity(variant._id, quantity + 1, variant.stock)
                           }
-                          className="p-1 text-[#5A5147] disabled:opacity-40"
+                          className="p-1 text-[#57534E] disabled:opacity-40"
                           aria-label="Increase quantity"
                         >
                           <Plus size={14} />
@@ -124,7 +124,7 @@ export default function CartPage() {
                       </div>
 
                       <div className="flex items-center gap-4">
-                        <span className="font-medium text-[#2B2621]">
+                        <span className="font-medium text-[#1C1917]">
                           {formatPaise(variant.price * quantity)}
                         </span>
                         <button
@@ -132,7 +132,7 @@ export default function CartPage() {
                           disabled={isPending}
                           onClick={() => remove(variant._id)}
                           aria-label="Remove item"
-                          className="text-[#8A8071] transition hover:text-red-600 disabled:opacity-40"
+                          className="text-[#78716C] transition hover:text-red-600 disabled:opacity-40"
                         >
                           <X size={18} />
                         </button>
@@ -144,15 +144,15 @@ export default function CartPage() {
             })}
           </div>
 
-          <div className="h-fit rounded-2xl border border-[#E7DFD3] p-6">
-            <h2 className="font-heading text-xl text-[#2B2621]">Summary</h2>
-            <div className="mt-4 flex justify-between text-sm text-[#5A5147]">
+          <div className="h-fit rounded-2xl border border-[#E7E5E4] p-6">
+            <h2 className="font-heading text-xl text-[#1C1917]">Summary</h2>
+            <div className="mt-4 flex justify-between text-sm text-[#57534E]">
               <span>Subtotal ({cart.itemCount} items)</span>
-              <span className="font-medium text-[#2B2621]">
+              <span className="font-medium text-[#1C1917]">
                 {formatPaise(cart.subtotal)}
               </span>
             </div>
-            <p className="mt-4 text-xs text-[#8A8071]">
+            <p className="mt-4 text-xs text-[#78716C]">
               Checkout isn&apos;t available yet — this is a preview of your cart.
             </p>
           </div>
