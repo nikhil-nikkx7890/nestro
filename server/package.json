@@ -10,7 +10,8 @@
     "start": "node src/server.js",
     "seed": "node src/scripts/seed.js",
     "seed:admin": "node src/scripts/seedAdmin.js",
-    "seed:images": "node src/scripts/seedProductImages.js"
+    "seed:images": "node src/scripts/seedProductImages.js",
+    "seed:master-images": "node src/scripts/seedMasterDataImages.js"
   },
   "keywords": [],
   "author": "",
