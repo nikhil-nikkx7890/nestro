@@ -53,6 +53,20 @@ categorySchema.pre("save", async function () {
 
 categorySchema.index({ name: "text" });
 
+// Virtual — same pattern as Product's variantCount. Counts every Product
+// referencing this Category regardless of status, so the same number is
+// reusable for both the admin list row and the storefront homepage
+// (see ADR-041).
+categorySchema.virtual("productCount", {
+  ref: "Product",
+  localField: "_id",
+  foreignField: "category",
+  count: true,
+});
+
+categorySchema.set("toJSON", { virtuals: true });
+categorySchema.set("toObject", { virtuals: true });
+
 const Category = mongoose.model("Category", categorySchema);
 
 export default Category;

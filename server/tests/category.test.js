@@ -63,6 +63,34 @@ describe("GET /api/categories/:categoryId", () => {
 
     expect(res.status).toBe(404);
   });
+
+  it("includes productCount reflecting real products (ADR-041)", async () => {
+    const masterData = await createMasterData();
+    await createTestProduct(masterData);
+
+    const res = await request(app).get(`/api/categories/${masterData.category._id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.productCount).toBe(1);
+  });
+});
+
+describe("GET /api/categories", () => {
+  it("includes productCount per category, 0 when nothing references it (ADR-041)", async () => {
+    const masterData = await createMasterData();
+    await createTestProduct(masterData);
+    const emptyCategory = await Category.create({ name: "Empty Category" });
+
+    const res = await request(app).get("/api/categories");
+
+    expect(res.status).toBe(200);
+    const referenced = res.body.data.find(
+      (c) => c._id === masterData.category._id.toString(),
+    );
+    const empty = res.body.data.find((c) => c._id === emptyCategory._id.toString());
+    expect(referenced.productCount).toBe(1);
+    expect(empty.productCount).toBe(0);
+  });
 });
 
 describe("DELETE /api/categories/:categoryId", () => {

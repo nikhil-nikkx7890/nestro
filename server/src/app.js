@@ -14,6 +14,7 @@ import productVariantRoutes from "./routes/productVariant.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
 import wishlistRoutes from "./routes/wishlist.routes.js";
+import contactRoutes from "./routes/contact.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
 const app = express();
@@ -52,6 +53,7 @@ app.use("/api/products", productRoutes);
 app.use("/api", productVariantRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/contact", contactRoutes);
 
 app.get("/", (req, res) => {
   res.status(200).json({

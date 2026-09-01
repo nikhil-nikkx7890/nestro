@@ -59,6 +59,34 @@ describe("GET /api/room-types/:roomTypeId", () => {
 
     expect(res.status).toBe(404);
   });
+
+  it("includes productCount reflecting real products (ADR-041)", async () => {
+    const masterData = await createMasterData();
+    await createTestProduct(masterData);
+
+    const res = await request(app).get(`/api/room-types/${masterData.roomType._id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.productCount).toBe(1);
+  });
+});
+
+describe("GET /api/room-types", () => {
+  it("includes productCount per room type, matching Product.roomTypes membership (ADR-041)", async () => {
+    const masterData = await createMasterData();
+    await createTestProduct(masterData);
+    const emptyRoomType = await RoomType.create({ name: "Empty Room" });
+
+    const res = await request(app).get("/api/room-types");
+
+    expect(res.status).toBe(200);
+    const referenced = res.body.data.find(
+      (r) => r._id === masterData.roomType._id.toString(),
+    );
+    const empty = res.body.data.find((r) => r._id === emptyRoomType._id.toString());
+    expect(referenced.productCount).toBe(1);
+    expect(empty.productCount).toBe(0);
+  });
 });
 
 describe("DELETE /api/room-types/:roomTypeId", () => {

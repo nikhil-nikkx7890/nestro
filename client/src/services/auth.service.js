@@ -26,4 +26,9 @@ export const authService = {
     const response = await api.get("/auth/me");
     return response.data;
   },
+
+  updateMe: async (data) => {
+    const response = await api.patch("/auth/me", data);
+    return response.data;
+  },
 };

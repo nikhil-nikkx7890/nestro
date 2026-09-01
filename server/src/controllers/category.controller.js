@@ -43,7 +43,7 @@ const getCategories = async (req, res) => {
   });
 
   const [categories, total] = await Promise.all([
-    Category.find(filter).sort(sort).skip(skip).limit(limit),
+    Category.find(filter).sort(sort).skip(skip).limit(limit).populate("productCount"),
     Category.countDocuments(filter),
   ]);
 
@@ -61,7 +61,7 @@ const getCategories = async (req, res) => {
 
 const getCategoryById = async (req, res) => {
   const { categoryId } = req.params;
-  const category = await Category.findById(categoryId);
+  const category = await Category.findById(categoryId).populate("productCount");
   if (!category) {
     throw new AppError("Category not found", 404);
   }

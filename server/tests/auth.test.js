@@ -93,6 +93,47 @@ describe("GET /api/auth/me", () => {
   });
 });
 
+describe("PATCH /api/auth/me", () => {
+  it("returns 401 when no auth cookie is sent", async () => {
+    const res = await request(app).patch("/api/auth/me").send({ name: "New Name" });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("updates the logged-in user's own name", async () => {
+    const agent = request.agent(app);
+    await agent.post("/api/auth/register").send(testUser);
+
+    const res = await agent.patch("/api/auth/me").send({ name: "Nikhil C." });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.name).toBe("Nikhil C.");
+
+    const meRes = await agent.get("/api/auth/me");
+    expect(meRes.body.data.name).toBe("Nikhil C.");
+  });
+
+  it("rejects a name that's too short", async () => {
+    const agent = request.agent(app);
+    await agent.post("/api/auth/register").send(testUser);
+
+    const res = await agent.patch("/api/auth/me").send({ name: "A" });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects an attempt to change fields other than name (e.g. role)", async () => {
+    const agent = request.agent(app);
+    await agent.post("/api/auth/register").send(testUser);
+
+    const res = await agent
+      .patch("/api/auth/me")
+      .send({ name: "Nikhil C.", role: "admin" });
+
+    expect(res.status).toBe(400); // .strict() schema rejects the unknown field
+  });
+});
+
 describe("POST /api/auth/logout", () => {
   it("clears the auth cookie so a subsequent /me request is unauthorized", async () => {
     const agent = request.agent(app);

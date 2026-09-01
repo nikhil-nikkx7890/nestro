@@ -39,3 +39,6 @@ coverage/
 # personal docs
 
 .docs/
+
+# Claude Code local tool config
+.claude/

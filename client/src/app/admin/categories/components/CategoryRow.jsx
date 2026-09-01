@@ -9,7 +9,7 @@ export default function CategoryRow({ category, onEdit, onDelete }) {
 
       <td className="px-6 py-4 text-neutral-500">{category.slug}</td>
 
-      <td className="px-6 py-4">N/A {/* category.products */}</td>
+      <td className="px-6 py-4">{category.productCount ?? 0}</td>
 
       <td className="px-6 py-4">
         <span

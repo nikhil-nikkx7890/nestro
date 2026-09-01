@@ -97,3 +97,26 @@ export const getMe = async (req, res) => {
     },
   });
 };
+
+/**
+ * Updates the logged-in user's own name. req.user comes from the
+ * authenticate middleware, so there's no id in the route — a caller can
+ * only ever edit themselves, never another user.
+ */
+export const updateMe = async (req, res) => {
+  const { name } = req.body;
+
+  req.user.name = name;
+  await req.user.save();
+
+  return res.status(200).json({
+    success: true,
+    message: "Profile updated successfully",
+    data: {
+      id: req.user._id,
+      name: req.user.name,
+      email: req.user.email,
+      role: req.user.role,
+    },
+  });
+};

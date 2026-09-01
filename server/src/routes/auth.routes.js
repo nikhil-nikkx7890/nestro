@@ -1,9 +1,9 @@
 import express from "express";
 import rateLimit from "express-rate-limit";
-import { register, login, logout, getMe } from "../controllers/auth.controller.js";
+import { register, login, logout, getMe, updateMe } from "../controllers/auth.controller.js";
 import { authenticate } from "../middlewares/authenticate.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
-import { registerSchema, loginSchema } from "../validators/auth.validator.js";
+import { registerSchema, loginSchema, updateMeSchema } from "../validators/auth.validator.js";
 
 const router = express.Router();
 
@@ -25,5 +25,6 @@ router.post("/register", authLimiter, validateRequest(registerSchema), register)
 router.post("/login", authLimiter, validateRequest(loginSchema), login);
 router.post("/logout", logout);
 router.get("/me", authenticate, getMe);
+router.patch("/me", authenticate, validateRequest(updateMeSchema), updateMe);
 
 export default router;

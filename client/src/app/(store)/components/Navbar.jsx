@@ -44,7 +44,7 @@ export default function Navbar() {
     <header className="border-b border-[#E7DFD3]">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 sm:px-10">
         <Link
-          href="/products"
+          href="/"
           className="font-heading text-2xl font-semibold tracking-tight text-[#2B2621]"
         >
           Nestro
@@ -58,6 +58,20 @@ export default function Navbar() {
             Shop
           </Link>
 
+          <Link
+            href="/about"
+            className="hidden text-sm font-medium text-[#5A5147] transition hover:text-[#B15E3B] sm:inline"
+          >
+            About
+          </Link>
+
+          <Link
+            href="/contact"
+            className="hidden text-sm font-medium text-[#5A5147] transition hover:text-[#B15E3B] sm:inline"
+          >
+            Contact
+          </Link>
+
           {isCustomer && (
             <>
               <IconLink href="/wishlist" label="Wishlist" count={wishlistProducts.length}>
@@ -67,6 +81,16 @@ export default function Navbar() {
                 <ShoppingBag size={20} />
               </IconLink>
             </>
+          )}
+
+          {isCustomer && (
+            <Link
+              href="/account"
+              className="flex items-center gap-2 text-sm font-medium text-[#5A5147] transition hover:text-[#B15E3B]"
+            >
+              <User size={18} />
+              <span className="hidden sm:inline">{user.name.split(" ")[0]}</span>
+            </Link>
           )}
 
           {!loading && user?.role === "admin" && (

@@ -35,7 +35,7 @@ const getAllRoomTypes = async (req, res) => {
   });
 
   const [allRoomTypes, total] = await Promise.all([
-    roomTypeModel.find(filter).sort(sort).skip(skip).limit(limit),
+    roomTypeModel.find(filter).sort(sort).skip(skip).limit(limit).populate("productCount"),
     roomTypeModel.countDocuments(filter),
   ]);
 
@@ -54,7 +54,7 @@ const getAllRoomTypes = async (req, res) => {
 
 const getRoomTypeById = async (req, res) => {
   const { roomTypeId } = req.params;
-  const roomType = await roomTypeModel.findById(roomTypeId);
+  const roomType = await roomTypeModel.findById(roomTypeId).populate("productCount");
   if (!roomType) {
     throw new AppError(`Room type not found`, 404);
   }

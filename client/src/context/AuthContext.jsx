@@ -44,8 +44,18 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // Mirrors login/register — call the API, then sync context state from
+  // the response rather than re-fetching /me separately.
+  const updateProfile = async (data) => {
+    const res = await authService.updateMe(data);
+    setUser(res.data);
+    return res.data;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, register, logout, updateProfile }}
+    >
       {children}
     </AuthContext.Provider>
   );

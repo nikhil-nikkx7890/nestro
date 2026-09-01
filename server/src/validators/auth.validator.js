@@ -18,3 +18,16 @@ export const loginSchema = z
     password: z.string().min(1, "Password is required."),
   })
   .strict();
+
+// Name only — email/password/role changes are out of scope for this
+// endpoint (see ADR-041; a self-service role change would be a security
+// hole the same way registerSchema already guards against).
+export const updateMeSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(2, "Name must be at least 2 characters.")
+      .max(50, "Name cannot exceed 50 characters."),
+  })
+  .strict();
