@@ -12,7 +12,8 @@
     "seed:admin": "node src/scripts/seedAdmin.js",
     "seed:images": "node src/scripts/seedProductImages.js",
     "seed:master-images": "node src/scripts/seedMasterDataImages.js",
-    "seed:catalog": "node src/scripts/seedCatalog.js"
+    "seed:catalog": "node src/scripts/seedCatalog.js",
+    "backfill:catalog-details": "node src/scripts/backfillCatalogDetails.js"
   },
   "keywords": [],
   "author": "",

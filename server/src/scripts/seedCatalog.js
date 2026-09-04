@@ -4,6 +4,7 @@ import connectDB from "../config/db.js";
 import cloudinary from "../config/cloudinary.js";
 import { searchUnsplashPhotos } from "../utils/unsplash.js";
 import { generateUniqueSku } from "../utils/generateUniqueSku.js";
+import { buildDimensions, buildWeight, buildSpecifications } from "../utils/catalogDetails.js";
 
 import Category from "../models/category.model.js";
 import Brand from "../models/brand.model.js";
@@ -29,32 +30,40 @@ import ProductVariant from "../models/productVariant.model.js";
  */
 
 // Category name -> { singular label used in generated product names, Unsplash search query }
+// priceRange values are in PAISE (ADR-023 — money is always stored as
+// integer minor units, never floats/rupees directly). A prior version of
+// this file had these as bare rupee amounts, which silently seeded every
+// price 100x too low (found via a live UI check after deploy, fixed by
+// multiplying every range by 100 here and via a one-off backfill on the
+// already-seeded data).
+const rupeesToPaise = ([min, max]) => [min * 100, max * 100];
+
 const CATEGORY_META = {
-  Sofas: { singular: "Sofa", query: "sofa furniture", priceRange: [25000, 120000] },
-  Beds: { singular: "Bed", query: "bed frame furniture", priceRange: [15000, 90000] },
-  "Dining Tables": { singular: "Dining Table", query: "dining table furniture", priceRange: [12000, 70000] },
-  Chairs: { singular: "Chair", query: "chair furniture", priceRange: [2500, 15000] },
-  Wardrobes: { singular: "Wardrobe", query: "wardrobe closet furniture", priceRange: [18000, 80000] },
-  Bookshelves: { singular: "Bookshelf", query: "bookshelf furniture", priceRange: [5000, 30000] },
-  "Coffee Tables": { singular: "Coffee Table", query: "coffee table furniture", priceRange: [3500, 20000] },
-  "TV Units": { singular: "TV Unit", query: "tv unit furniture", priceRange: [6000, 35000] },
-  "Office Desks": { singular: "Office Desk", query: "office desk furniture", priceRange: [5000, 25000] },
-  "Bar Stools": { singular: "Bar Stool", query: "bar stool furniture", priceRange: [2000, 8000] },
-  Recliners: { singular: "Recliner", query: "recliner chair furniture", priceRange: [15000, 60000] },
-  Ottomans: { singular: "Ottoman", query: "ottoman furniture", priceRange: [2500, 12000] },
-  Nightstands: { singular: "Nightstand", query: "nightstand furniture", priceRange: [2000, 10000] },
-  "Bunk Beds": { singular: "Bunk Bed", query: "bunk bed furniture", priceRange: [20000, 70000] },
-  "Rocking Chairs": { singular: "Rocking Chair", query: "rocking chair furniture", priceRange: [4000, 18000] },
-  "Console Tables": { singular: "Console Table", query: "console table furniture", priceRange: [4000, 20000] },
-  "Shoe Racks": { singular: "Shoe Rack", query: "shoe rack furniture", priceRange: [1500, 8000] },
-  "Room Dividers": { singular: "Room Divider", query: "room divider screen", priceRange: [3000, 15000] },
-  "Bean Bags": { singular: "Bean Bag", query: "bean bag chair", priceRange: [1200, 6000] },
-  "Study Tables": { singular: "Study Table", query: "study table desk", priceRange: [4000, 18000] },
-  "Dressing Tables": { singular: "Dressing Table", query: "dressing table furniture", priceRange: [6000, 28000] },
-  "Kitchen Racks": { singular: "Kitchen Rack", query: "kitchen rack storage", priceRange: [2000, 10000] },
-  "Shoe Cabinets": { singular: "Shoe Cabinet", query: "shoe cabinet furniture", priceRange: [3500, 15000] },
-  "Side Tables": { singular: "Side Table", query: "side table furniture", priceRange: [1800, 9000] },
-  "Garden Benches": { singular: "Garden Bench", query: "garden bench outdoor furniture", priceRange: [4000, 20000] },
+  Sofas: { singular: "Sofa", query: "sofa furniture", priceRange: rupeesToPaise([25000, 120000]) },
+  Beds: { singular: "Bed", query: "bed frame furniture", priceRange: rupeesToPaise([15000, 90000]) },
+  "Dining Tables": { singular: "Dining Table", query: "dining table furniture", priceRange: rupeesToPaise([12000, 70000]) },
+  Chairs: { singular: "Chair", query: "chair furniture", priceRange: rupeesToPaise([2500, 15000]) },
+  Wardrobes: { singular: "Wardrobe", query: "wardrobe closet furniture", priceRange: rupeesToPaise([18000, 80000]) },
+  Bookshelves: { singular: "Bookshelf", query: "bookshelf furniture", priceRange: rupeesToPaise([5000, 30000]) },
+  "Coffee Tables": { singular: "Coffee Table", query: "coffee table furniture", priceRange: rupeesToPaise([3500, 20000]) },
+  "TV Units": { singular: "TV Unit", query: "tv unit furniture", priceRange: rupeesToPaise([6000, 35000]) },
+  "Office Desks": { singular: "Office Desk", query: "office desk furniture", priceRange: rupeesToPaise([5000, 25000]) },
+  "Bar Stools": { singular: "Bar Stool", query: "bar stool furniture", priceRange: rupeesToPaise([2000, 8000]) },
+  Recliners: { singular: "Recliner", query: "recliner chair furniture", priceRange: rupeesToPaise([15000, 60000]) },
+  Ottomans: { singular: "Ottoman", query: "ottoman furniture", priceRange: rupeesToPaise([2500, 12000]) },
+  Nightstands: { singular: "Nightstand", query: "nightstand furniture", priceRange: rupeesToPaise([2000, 10000]) },
+  "Bunk Beds": { singular: "Bunk Bed", query: "bunk bed furniture", priceRange: rupeesToPaise([20000, 70000]) },
+  "Rocking Chairs": { singular: "Rocking Chair", query: "rocking chair furniture", priceRange: rupeesToPaise([4000, 18000]) },
+  "Console Tables": { singular: "Console Table", query: "console table furniture", priceRange: rupeesToPaise([4000, 20000]) },
+  "Shoe Racks": { singular: "Shoe Rack", query: "shoe rack furniture", priceRange: rupeesToPaise([1500, 8000]) },
+  "Room Dividers": { singular: "Room Divider", query: "room divider screen", priceRange: rupeesToPaise([3000, 15000]) },
+  "Bean Bags": { singular: "Bean Bag", query: "bean bag chair", priceRange: rupeesToPaise([1200, 6000]) },
+  "Study Tables": { singular: "Study Table", query: "study table desk", priceRange: rupeesToPaise([4000, 18000]) },
+  "Dressing Tables": { singular: "Dressing Table", query: "dressing table furniture", priceRange: rupeesToPaise([6000, 28000]) },
+  "Kitchen Racks": { singular: "Kitchen Rack", query: "kitchen rack storage", priceRange: rupeesToPaise([2000, 10000]) },
+  "Shoe Cabinets": { singular: "Shoe Cabinet", query: "shoe cabinet furniture", priceRange: rupeesToPaise([3500, 15000]) },
+  "Side Tables": { singular: "Side Table", query: "side table furniture", priceRange: rupeesToPaise([1800, 9000]) },
+  "Garden Benches": { singular: "Garden Bench", query: "garden bench outdoor furniture", priceRange: rupeesToPaise([4000, 20000]) },
 };
 
 const STYLE_ADJECTIVES = [
@@ -108,22 +117,35 @@ const buildCategoryImagePool = async (categoryName, query) => {
   return uploaded;
 };
 
+const DESCRIPTION_TEMPLATES = [
+  (adj, name, room) => `A ${adj} ${name.toLowerCase()} built for the ${room.toLowerCase()}, made to hold up to daily use for years.`,
+  (adj, name, room) => `This ${adj} ${name.toLowerCase()} brings a considered, ${adj} edge to any ${room.toLowerCase()}.`,
+  (adj, name) => `A ${name.toLowerCase()} with a ${adj} silhouette — simple lines, honest materials, nothing extra.`,
+  (adj, name, room) => `Designed for the ${room.toLowerCase()}, this ${name.toLowerCase()} pairs a ${adj} look with everyday durability.`,
+];
+
 const buildProductDocs = (category, brands, roomTypes, imagePool) => {
   const meta = CATEGORY_META[category.name];
   const adjectives = pickRandom(STYLE_ADJECTIVES, PRODUCTS_PER_CATEGORY);
 
-  return adjectives.map((adjective) => ({
-    name: `${adjective} ${meta.singular} - ${category.name.slice(0, 3).toUpperCase()}${randomInt(100, 999)}`,
-    description: `A ${adjective.toLowerCase()} ${meta.singular.toLowerCase()}, part of Nestro's ${category.name} collection.`,
-    category: category._id,
-    brand: pickOne(brands)._id,
-    roomTypes: pickRandom(roomTypes, randomInt(1, Math.min(2, roomTypes.length))).map((r) => r._id),
-    images: imagePool.length ? pickRandom(imagePool, Math.min(3, imagePool.length)) : [],
-    status: weightedStatus(),
-  }));
+  return adjectives.map((adjective) => {
+    const productRoomTypes = pickRandom(roomTypes, randomInt(1, Math.min(2, roomTypes.length)));
+    const template = pickOne(DESCRIPTION_TEMPLATES);
+
+    return {
+      name: `${adjective} ${meta.singular} - ${category.name.slice(0, 3).toUpperCase()}${randomInt(100, 999)}`,
+      description: template(adjective.toLowerCase(), meta.singular, productRoomTypes[0]?.name || "home"),
+      category: category._id,
+      brand: pickOne(brands)._id,
+      roomTypes: productRoomTypes.map((r) => r._id),
+      images: imagePool.length ? pickRandom(imagePool, Math.min(3, imagePool.length)) : [],
+      specifications: buildSpecifications(meta.singular),
+      status: weightedStatus(),
+    };
+  });
 };
 
-const buildVariantDocs = async (product, materials, colors, priceRange) => {
+const buildVariantDocs = async (product, materials, colors, priceRange, categoryName) => {
   const variantCount = randomInt(MIN_VARIANTS_PER_PRODUCT, MAX_VARIANTS_PER_PRODUCT);
   const usedPairs = new Set();
   const docs = [];
@@ -152,6 +174,8 @@ const buildVariantDocs = async (product, materials, colors, priceRange) => {
       material: material._id,
       color: color._id,
       stock: randomInt(0, 60),
+      dimensions: buildDimensions(categoryName),
+      weight: buildWeight(categoryName),
       isActive: Math.random() > 0.05,
     });
   }
@@ -223,7 +247,7 @@ const seedCatalog = async () => {
 
     let categoryVariantCount = 0;
     for (const product of createdProducts) {
-      const variantDocs = await buildVariantDocs(product, materials, colors, meta.priceRange);
+      const variantDocs = await buildVariantDocs(product, materials, colors, meta.priceRange, category.name);
       await ProductVariant.insertMany(variantDocs);
       categoryVariantCount += variantDocs.length;
     }
