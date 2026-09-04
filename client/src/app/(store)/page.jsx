@@ -67,8 +67,6 @@ export default function HomePage() {
     <div>
       <HeroCarousel categories={categories} />
 
-      <TrustBar />
-
       <CategoryStrip items={categories} />
 
       {newArrivals.length > 0 && (
@@ -143,6 +141,12 @@ export default function HomePage() {
           { value: totals.roomTypes, label: "Rooms" },
         ]}
       />
+
+      {/* Near the bottom on purpose: delivery/returns/warranty answer a
+          question a shopper has once they're considering a purchase, not
+          the moment they land. The top of the page belongs to the
+          catalog. */}
+      <TrustBar />
     </div>
   );
 }
