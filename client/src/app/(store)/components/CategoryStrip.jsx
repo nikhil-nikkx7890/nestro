@@ -15,14 +15,17 @@ export default function CategoryStrip({ items }) {
   if (!items.length) return null;
 
   return (
-    <section className="mx-auto max-w-[1440px] px-6 py-16 sm:px-10">
+    <section className="mx-auto max-w-[1440px] px-6 py-10 sm:px-10 sm:py-16">
       <SectionHeading
         eyebrow="Browse"
         title="Shop by Category"
         action={{ label: "All furniture", href: "/products" }}
       />
 
-      <div className="mt-10 flex gap-8 overflow-x-auto pb-2 sm:grid sm:grid-cols-4 sm:gap-6 sm:overflow-visible lg:grid-cols-8">
+      {/* -mx-6 px-6 lets the scroll strip run to the screen edge on
+          mobile instead of being clipped at the section's padding, so a
+          half-visible next item signals there's more to swipe. */}
+      <div className="-mx-6 mt-8 flex gap-8 overflow-x-auto px-6 pb-2 sm:mx-0 sm:mt-10 sm:grid sm:grid-cols-4 sm:gap-6 sm:overflow-visible sm:px-0 lg:grid-cols-8">
         {items.map((category) => (
           <Link
             key={category._id}

@@ -9,16 +9,19 @@ import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
+// The -m-2 p-2 pairing grows the tap area to ~40px without changing how
+// the icon sits in the row — a bare 20px icon is well under the ~44px
+// minimum a finger can reliably hit on a phone.
 function IconLink({ href, count, label, children }) {
   return (
     <Link
       href={href}
       aria-label={label}
-      className="relative text-[#57534E] transition hover:text-[#8B5E3C]"
+      className="relative -m-2 p-2 text-[#57534E] transition hover:text-[#8B5E3C]"
     >
       {children}
       {count > 0 && (
-        <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#8B5E3C] px-1 text-[10px] font-medium text-white">
+        <span className="absolute right-0 top-0 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#8B5E3C] px-1 text-[10px] font-medium text-white">
           {count}
         </span>
       )}
@@ -94,7 +97,7 @@ export default function Navbar() {
           {isCustomer && (
             <Link
               href="/account"
-              className="flex items-center gap-2 text-sm font-medium text-[#57534E] transition hover:text-[#8B5E3C]"
+              className="-m-2 flex items-center gap-2 p-2 text-sm font-medium text-[#57534E] transition hover:text-[#8B5E3C]"
             >
               <User size={18} />
               <span className="hidden sm:inline">{user.name.split(" ")[0]}</span>
@@ -104,7 +107,7 @@ export default function Navbar() {
           {!loading && user?.role === "admin" && (
             <Link
               href="/admin"
-              className="flex items-center gap-2 text-sm font-medium text-[#57534E] transition hover:text-[#8B5E3C]"
+              className="-m-2 flex items-center gap-2 p-2 text-sm font-medium text-[#57534E] transition hover:text-[#8B5E3C]"
             >
               <User size={18} />
               <span className="hidden sm:inline">{user.name.split(" ")[0]}</span>
@@ -124,7 +127,7 @@ export default function Navbar() {
           {!loading && !user && (
             <Link
               href="/login"
-              className="flex items-center gap-2 text-sm font-medium text-[#57534E] transition hover:text-[#8B5E3C]"
+              className="-m-2 flex items-center gap-2 p-2 text-sm font-medium text-[#57534E] transition hover:text-[#8B5E3C]"
             >
               <User size={18} />
               <span className="hidden sm:inline">Login</span>

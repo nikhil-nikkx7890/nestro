@@ -54,7 +54,7 @@ export default function RoomMosaic({ items }) {
   const secondary = rest.slice(0, 4);
 
   return (
-    <section className="mx-auto max-w-[1440px] px-6 py-16 sm:px-10">
+    <section className="mx-auto max-w-[1440px] px-6 py-10 sm:px-10 sm:py-16">
       <SectionHeading eyebrow="Curated by space" title="Shop by Room" />
 
       <div className="mt-10 grid gap-5 lg:grid-cols-2">

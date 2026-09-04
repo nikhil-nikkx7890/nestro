@@ -70,7 +70,7 @@ export default function HomePage() {
       <CategoryStrip items={categories} />
 
       {newArrivals.length > 0 && (
-        <section className="mx-auto max-w-[1440px] px-6 py-16 sm:px-10">
+        <section className="mx-auto max-w-[1440px] px-6 py-10 sm:px-10 sm:py-16">
           <SectionHeading
             eyebrow="Just landed"
             title="New Arrivals"
@@ -122,7 +122,7 @@ export default function HomePage() {
               </div>
             </Link>
 
-            <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-8 sm:gap-y-12 xl:grid-cols-4">
               {rest.map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}

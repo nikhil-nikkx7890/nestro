@@ -26,15 +26,18 @@ function FilterSection({ title, children, defaultOpen = true, scrollable = false
   );
 }
 
+// py-1.5 on the label (not the input) grows the whole row into the tap
+// target, so a 16px checkbox is still comfortably hittable on a phone —
+// the label already toggles the input, the row just needs the height.
 function CheckboxOption({ checked, onToggle, label, count }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between gap-2 text-sm text-[#57534E] transition hover:text-[#1C1917]">
-      <span className="flex items-center gap-2">
+    <label className="flex cursor-pointer items-center justify-between gap-2 py-1.5 text-sm text-[#57534E] transition hover:text-[#1C1917]">
+      <span className="flex items-center gap-2.5">
         <input
           type="checkbox"
           checked={checked}
           onChange={onToggle}
-          className="h-4 w-4 rounded border-[#D6D3D1] text-[#8B5E3C] accent-[#8B5E3C]"
+          className="h-4 w-4 shrink-0 rounded border-[#D6D3D1] text-[#8B5E3C] accent-[#8B5E3C]"
         />
         {label}
       </span>
@@ -43,7 +46,9 @@ function CheckboxOption({ checked, onToggle, label, count }) {
   );
 }
 
-export default function ProductFilters({ filters, onChange }) {
+// showHeading is false inside the mobile drawer, which already has its
+// own "Filters" title bar — two of them stacked read as a mistake.
+export default function ProductFilters({ filters, onChange, showHeading = true }) {
   const [options, setOptions] = useState(null);
   const [priceInputs, setPriceInputs] = useState({
     min: toRupees(filters.minPrice),
@@ -101,9 +106,13 @@ export default function ProductFilters({ filters, onChange }) {
   return (
     <aside>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-[#8B5E3C]">
-          Filters
-        </h2>
+        {showHeading ? (
+          <h2 className="text-xs font-semibold uppercase tracking-[0.15em] text-[#8B5E3C]">
+            Filters
+          </h2>
+        ) : (
+          <span />
+        )}
         {hasActiveFilters && (
           <button
             type="button"
@@ -201,7 +210,7 @@ export default function ProductFilters({ filters, onChange }) {
                 title={`${c.name} (${c.count})`}
                 onClick={() => toggleValue("color", c._id)}
                 style={{ backgroundColor: c.hexCode }}
-                className={`h-7 w-7 rounded-full border-2 transition ${
+                className={`h-8 w-8 rounded-full border-2 transition ${
                   isSelected ? "border-[#8B5E3C] ring-2 ring-[#8B5E3C]/30" : "border-[#E7E5E4]"
                 }`}
               />
@@ -211,14 +220,14 @@ export default function ProductFilters({ filters, onChange }) {
       </FilterSection>
 
       <FilterSection title="Availability">
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-[#57534E] transition hover:text-[#1C1917]">
+        <label className="flex cursor-pointer items-center gap-2.5 py-1.5 text-sm text-[#57534E] transition hover:text-[#1C1917]">
           <input
             type="checkbox"
             checked={Boolean(filters.inStock)}
             onChange={() =>
               onChange({ ...filters, inStock: filters.inStock ? undefined : true })
             }
-            className="h-4 w-4 rounded border-[#D6D3D1] text-[#8B5E3C] accent-[#8B5E3C]"
+            className="h-4 w-4 shrink-0 rounded border-[#D6D3D1] text-[#8B5E3C] accent-[#8B5E3C]"
           />
           In Stock Only
         </label>

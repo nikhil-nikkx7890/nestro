@@ -55,26 +55,29 @@ export default function ProductCard({ product }) {
         )}
       </div>
 
-      <div className="mt-4 space-y-1">
+      {/* Sizes step down on mobile because the grid is two-up there —
+          a card is roughly 165px wide, where the desktop type sizes
+          wrap product names onto four or five lines. */}
+      <div className="mt-3 space-y-1 sm:mt-4">
         {product.category?.name && (
-          <p className="text-xs uppercase tracking-wide text-[#8B5E3C]">
+          <p className="text-[10px] uppercase tracking-wide text-[#8B5E3C] sm:text-xs">
             {product.category.name}
           </p>
         )}
-        <h3 className="font-heading text-lg text-[#1C1917]">
+        <h3 className="font-heading text-sm text-[#1C1917] sm:text-lg">
           {toTitleCase(product.name)}
         </h3>
         {product.brand?.name && (
-          <p className="text-sm text-[#78716C]">{product.brand.name}</p>
+          <p className="text-xs text-[#78716C] sm:text-sm">{product.brand.name}</p>
         )}
 
         {product.fromPrice != null && (
-          <div className="flex items-baseline gap-2 pt-1">
-            <span className="text-base font-semibold text-[#1C1917]">
+          <div className="flex flex-wrap items-baseline gap-x-2 pt-1">
+            <span className="text-sm font-semibold text-[#1C1917] sm:text-base">
               {formatPaise(product.fromPrice)}
             </span>
             {product.compareAtPrice && product.compareAtPrice > product.fromPrice && (
-              <span className="text-sm text-[#A8A29E] line-through">
+              <span className="text-xs text-[#A8A29E] line-through sm:text-sm">
                 {formatPaise(product.compareAtPrice)}
               </span>
             )}

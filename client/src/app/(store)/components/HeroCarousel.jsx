@@ -70,7 +70,7 @@ export default function HeroCarousel({ categories }) {
                 <p className="text-xs uppercase tracking-[0.2em] text-[#D6BFA7]">
                   Featured Collection
                 </p>
-                <h1 className="mt-4 max-w-xl font-heading text-4xl sm:text-5xl">
+                <h1 className="mt-4 max-w-xl font-heading text-3xl sm:text-5xl">
                   {slide.label}
                 </h1>
                 <p className="mt-4 max-w-md text-white/85">{slide.tagline}</p>
@@ -93,6 +93,15 @@ export default function HeroCarousel({ categories }) {
         .hero-swiper .swiper-button-next,
         .hero-swiper .swiper-button-prev {
           color: #ffffff;
+        }
+        /* The arrows sit at the vertical middle, which on a phone lands
+           directly on the slide's tagline. Swiping is the natural gesture
+           there anyway, and the pagination bullets still show position. */
+        @media (max-width: 639px) {
+          .hero-swiper .swiper-button-next,
+          .hero-swiper .swiper-button-prev {
+            display: none;
+          }
         }
         .hero-swiper .swiper-pagination-bullet {
           background: #ffffff;

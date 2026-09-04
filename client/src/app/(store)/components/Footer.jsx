@@ -35,7 +35,7 @@ const COLUMNS = [
 export default function Footer() {
   return (
     <footer className="bg-stone-950">
-      <div className="mx-auto max-w-[1440px] px-6 py-16 sm:px-10">
+      <div className="mx-auto max-w-[1440px] px-6 py-10 sm:px-10 sm:py-16">
         <div className="grid gap-12 lg:grid-cols-[1.5fr_1fr_1fr_1fr]">
           <div>
             <p className="font-heading text-xl font-semibold text-white">Nestro</p>

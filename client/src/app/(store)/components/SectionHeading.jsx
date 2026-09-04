@@ -8,14 +8,17 @@ import Link from "next/link";
  */
 export default function SectionHeading({ eyebrow, title, action }) {
   return (
-    <div className="flex items-end justify-between gap-6">
+    // Stacked on small screens: a two-line wrapped heading with the action
+    // link aligned to its bottom edge reads as a misaligned L shape, so
+    // the link only sits beside the title once there's room for one line.
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
       <div>
         {eyebrow && (
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#8B5E3C]">
             {eyebrow}
           </p>
         )}
-        <h2 className="mt-3 font-heading text-3xl text-[#1C1917] sm:text-4xl">
+        <h2 className="mt-3 font-heading text-2xl text-[#1C1917] sm:text-3xl lg:text-4xl">
           {title}
         </h2>
       </div>
