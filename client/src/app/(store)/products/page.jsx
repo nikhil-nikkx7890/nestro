@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 import { productService } from "@/services/product.service";
@@ -26,6 +26,18 @@ const buildExtraParams = (filters) => ({
 });
 
 export default function ProductListingPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-6xl px-6 py-14 sm:px-10 text-[#78716C]">Loading products...</div>}>
+      <ProductListingContent />
+    </Suspense>
+  );
+}
+
+// useSearchParams() opts the whole subtree into client-side rendering
+// during prerender unless wrapped in Suspense (Next.js App Router
+// requirement) — split out so the outer page component can provide that
+// boundary without the fallback needing to know about filters/search.
+function ProductListingContent() {
   const searchParams = useSearchParams();
   // Seeds the category/roomType filter from a homepage "Shop by
   // Category"/"Shop by Room" link (?category=id / ?roomType=id); only read
