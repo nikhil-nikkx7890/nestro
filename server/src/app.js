@@ -16,6 +16,7 @@ import cartRoutes from "./routes/cart.routes.js";
 import wishlistRoutes from "./routes/wishlist.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
+import { verifyOrigin } from "./middlewares/verifyOrigin.js";
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.use(
     credentials: true,
   })
 );
+app.use(verifyOrigin(allowedOrigins));
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
