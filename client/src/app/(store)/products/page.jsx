@@ -2,12 +2,13 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 
 import { productService } from "@/services/product.service";
 import { useResourceList } from "@/hooks/useResourceList";
 
 import ProductCard from "./components/ProductCard";
+import ProductCardSkeleton from "./components/ProductCardSkeleton";
 import ProductFilters from "./components/ProductFilters";
 import StorePagination from "./components/StorePagination";
 
@@ -56,7 +57,18 @@ function ProductListingContent() {
 
   const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const { items: products, loading, error, pagination, goToPage } = useResourceList({
+  const {
+    items: products,
+    loading,
+    error,
+    pagination,
+    goToPage,
+    search,
+    setSearch,
+    sortBy,
+    sortOrder,
+    applySort,
+  } = useResourceList({
     list: productService.list,
     entityName: "Product",
     extraParams: buildExtraParams(filters),
@@ -102,32 +114,80 @@ function ProductListingContent() {
         </div>
 
         <div>
-          <div className="mb-6 flex items-center justify-between lg:hidden">
-            <button
-              type="button"
-              onClick={() => setFiltersOpen(true)}
-              className="flex items-center gap-2 rounded-lg border border-[#D6D3D1] px-4 py-3 text-sm font-medium text-[#1C1917] transition hover:border-[#8B5E3C]"
-            >
-              <SlidersHorizontal size={16} />
-              Filters
-              {activeFilterCount > 0 && (
-                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#8B5E3C] px-1.5 text-xs text-white">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
+          <div className="mb-6 space-y-4">
+            <div className="relative">
+              <Search
+                size={18}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A8A29E]"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search furniture..."
+                className="w-full rounded-lg border border-[#D6D3D1] bg-white py-3 pl-10 pr-4 text-sm text-[#1C1917] outline-none transition placeholder:text-[#A8A29E] focus:border-[#8B5E3C]"
+              />
+            </div>
 
-            {pagination?.total > 0 && (
-              <p className="text-sm text-[#78716C]">{pagination.total} products</p>
-            )}
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(true)}
+                className="flex items-center gap-2 rounded-lg border border-[#D6D3D1] px-4 py-2.5 text-sm font-medium text-[#1C1917] transition hover:border-[#8B5E3C] lg:hidden"
+              >
+                <SlidersHorizontal size={16} />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-[#8B5E3C] px-1.5 text-xs text-white">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
+              {pagination?.total > 0 && (
+                <p className="hidden text-sm text-[#78716C] lg:block">
+                  {pagination.total} {pagination.total === 1 ? "product" : "products"}
+                </p>
+              )}
+
+              {/* Only fields the backend can actually sort on. Price is
+                  deliberately absent: it lives on ProductVariant, so a
+                  price sort needs an aggregation the listing endpoint
+                  doesn't do yet — offering it here would just be a
+                  control that silently does nothing. */}
+              <select
+                value={`${sortBy || "createdAt"}:${sortOrder || "desc"}`}
+                onChange={(e) => {
+                  const [field, order] = e.target.value.split(":");
+                  applySort(field, order);
+                }}
+                aria-label="Sort products"
+                className="rounded-lg border border-[#D6D3D1] bg-white px-3 py-2.5 text-sm text-[#1C1917] outline-none transition focus:border-[#8B5E3C]"
+              >
+                <option value="createdAt:desc">Newest first</option>
+                <option value="createdAt:asc">Oldest first</option>
+                <option value="name:asc">Name: A to Z</option>
+                <option value="name:desc">Name: Z to A</option>
+              </select>
+            </div>
           </div>
 
-          {loading && <p className="text-[#78716C]">Loading products...</p>}
+          {loading && (
+            <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-8 sm:gap-y-12 xl:grid-cols-3 2xl:grid-cols-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          )}
 
           {error && <p className="text-red-600">{error}</p>}
 
           {!loading && !error && products.length === 0 && (
-            <p className="text-[#78716C]">No products match these filters.</p>
+            <p className="text-[#78716C]">
+              {search
+                ? `No products match "${search}".`
+                : "No products match these filters."}
+            </p>
           )}
 
           {!loading && !error && products.length > 0 && (

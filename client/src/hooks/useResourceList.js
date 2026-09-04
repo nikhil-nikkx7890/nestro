@@ -94,6 +94,15 @@ export function useResourceList({ list, entityName, extraParams = {} }) {
     setPage(1);
   };
 
+  // handleSort toggles direction on repeat clicks, which is right for a
+  // sortable table header. A sort dropdown instead picks a field AND a
+  // direction at once, so it needs to set both outright.
+  const applySort = (field, order) => {
+    setSortBy(field);
+    setSortOrder(order);
+    setPage(1);
+  };
+
   const handleFilterActive = (value) => {
     setIsActive(value);
     setPage(1);
@@ -124,6 +133,7 @@ export function useResourceList({ list, entityName, extraParams = {} }) {
     sortBy,
     sortOrder,
     handleSort,
+    applySort,
     isActive,
     handleFilterActive,
     pagination,

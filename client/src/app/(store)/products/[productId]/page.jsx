@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
-import { Heart, Minus, Plus } from "lucide-react";
+import Link from "next/link";
+import { ChevronRight, Heart, Minus, Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { productService } from "@/services/product.service";
@@ -109,8 +110,26 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-[1440px] px-6 py-24 text-center text-[#78716C] sm:px-10">
-        Loading...
+      <div className="mx-auto max-w-[1440px] animate-pulse px-6 py-10 sm:px-10 sm:py-14">
+        <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
+          <div>
+            <div className="aspect-square w-full rounded-2xl bg-[#E7E5E4]" />
+            <div className="mt-4 flex gap-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-20 w-20 rounded-xl bg-[#E7E5E4]" />
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="h-3 w-24 rounded bg-[#E7E5E4]" />
+            <div className="h-9 w-3/4 rounded bg-[#E7E5E4]" />
+            <div className="h-4 w-32 rounded bg-[#E7E5E4]" />
+            <div className="h-7 w-40 rounded bg-[#E7E5E4]" />
+            <div className="h-12 w-full rounded-lg bg-[#E7E5E4]" />
+            <div className="h-24 w-full rounded-xl bg-[#E7E5E4]" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -140,7 +159,33 @@ export default function ProductDetailPage() {
     selectedVariant.stock <= selectedVariant.lowStockThreshold;
 
   return (
-    <div className="mx-auto max-w-[1440px] px-6 py-14 sm:px-10">
+    <div className="mx-auto max-w-[1440px] px-6 py-10 sm:px-10 sm:py-14">
+      {/* The category crumb carries the real filter link, so it's a way
+          back into the list the shopper likely came from — not just a
+          decorative trail. */}
+      <nav aria-label="Breadcrumb" className="mb-8 flex flex-wrap items-center gap-1.5 text-sm text-[#78716C]">
+        <Link href="/" className="transition hover:text-[#8B5E3C]">
+          Home
+        </Link>
+        <ChevronRight size={14} className="text-[#A8A29E]" />
+        <Link href="/products" className="transition hover:text-[#8B5E3C]">
+          Shop
+        </Link>
+        {product.category?.name && (
+          <>
+            <ChevronRight size={14} className="text-[#A8A29E]" />
+            <Link
+              href={`/products?category=${product.category._id}`}
+              className="transition hover:text-[#8B5E3C]"
+            >
+              {product.category.name}
+            </Link>
+          </>
+        )}
+        <ChevronRight size={14} className="text-[#A8A29E]" />
+        <span className="text-[#1C1917]">{toTitleCase(product.name)}</span>
+      </nav>
+
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
         {/* Gallery */}
         <div>

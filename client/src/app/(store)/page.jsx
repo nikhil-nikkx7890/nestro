@@ -59,7 +59,29 @@ export default function HomePage() {
     load();
   }, []);
 
-  if (loading) return null;
+  // Was `return null`, which left a blank page (just navbar and footer)
+  // for the whole fetch — a skeleton at least shows the page's shape.
+  if (loading) {
+    return (
+      <div className="animate-pulse">
+        <div className="h-[420px] w-full bg-[#E7E5E4] sm:h-[520px]" />
+
+        <div className="mx-auto max-w-[1440px] px-6 py-10 sm:px-10 sm:py-16">
+          <div className="h-3 w-20 rounded bg-[#E7E5E4]" />
+          <div className="mt-3 h-8 w-64 rounded bg-[#E7E5E4]" />
+
+          <div className="mt-10 flex gap-8 overflow-hidden sm:grid sm:grid-cols-4 sm:gap-6 lg:grid-cols-8">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="flex flex-col items-center gap-3">
+                <div className="h-24 w-24 shrink-0 rounded-full bg-[#E7E5E4]" />
+                <div className="h-3 w-16 rounded bg-[#E7E5E4]" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const [featured, ...rest] = newArrivals;
 
