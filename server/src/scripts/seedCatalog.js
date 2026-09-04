@@ -4,7 +4,12 @@ import connectDB from "../config/db.js";
 import cloudinary from "../config/cloudinary.js";
 import { searchUnsplashPhotos } from "../utils/unsplash.js";
 import { generateUniqueSku } from "../utils/generateUniqueSku.js";
-import { buildDimensions, buildWeight, buildSpecifications } from "../utils/catalogDetails.js";
+import {
+  buildDimensions,
+  buildWeight,
+  buildSpecifications,
+  buildDescription,
+} from "../utils/catalogDetails.js";
 
 import Category from "../models/category.model.js";
 import Brand from "../models/brand.model.js";
@@ -117,24 +122,16 @@ const buildCategoryImagePool = async (categoryName, query) => {
   return uploaded;
 };
 
-const DESCRIPTION_TEMPLATES = [
-  (adj, name, room) => `A ${adj} ${name.toLowerCase()} built for the ${room.toLowerCase()}, made to hold up to daily use for years.`,
-  (adj, name, room) => `This ${adj} ${name.toLowerCase()} brings a considered, ${adj} edge to any ${room.toLowerCase()}.`,
-  (adj, name) => `A ${name.toLowerCase()} with a ${adj} silhouette — simple lines, honest materials, nothing extra.`,
-  (adj, name, room) => `Designed for the ${room.toLowerCase()}, this ${name.toLowerCase()} pairs a ${adj} look with everyday durability.`,
-];
-
 const buildProductDocs = (category, brands, roomTypes, imagePool) => {
   const meta = CATEGORY_META[category.name];
   const adjectives = pickRandom(STYLE_ADJECTIVES, PRODUCTS_PER_CATEGORY);
 
   return adjectives.map((adjective) => {
     const productRoomTypes = pickRandom(roomTypes, randomInt(1, Math.min(2, roomTypes.length)));
-    const template = pickOne(DESCRIPTION_TEMPLATES);
 
     return {
       name: `${adjective} ${meta.singular} - ${category.name.slice(0, 3).toUpperCase()}${randomInt(100, 999)}`,
-      description: template(adjective.toLowerCase(), meta.singular, productRoomTypes[0]?.name || "home"),
+      description: buildDescription(adjective, meta.singular, productRoomTypes[0]?.name),
       category: category._id,
       brand: pickOne(brands)._id,
       roomTypes: productRoomTypes.map((r) => r._id),
@@ -255,8 +252,19 @@ const seedCatalog = async () => {
     console.log(`  Created ${categoryVariantCount} variants.`);
   }
 
+  // Counted from the database, not accumulated in this process: in
+  // resumable mode most categories are skipped, so the local counters
+  // only describe this run and understated the real catalog size.
+  const [dbProducts, dbVariants] = await Promise.all([
+    Product.countDocuments(),
+    ProductVariant.countDocuments(),
+  ]);
+
   console.log(
-    `\nDone. ${totalProducts} products + ${totalVariants} variants = ${totalProducts + totalVariants} total entries.`,
+    `\nThis run: ${totalProducts} products + ${totalVariants} variants.`,
+  );
+  console.log(
+    `Catalog now holds: ${dbProducts} products + ${dbVariants} variants = ${dbProducts + dbVariants} total entries.`,
   );
 
   await mongoose.disconnect();

@@ -69,6 +69,30 @@ const CARE_LINES = [
  * nothing here names a specific material/finish the way a Variant's own
  * dimensions/weight can.
  */
+// "A urban sofa" / "a considered, industrial edge" — the article has to
+// follow the word that actually comes next, which varies by template and
+// by adjective, so it can't be hardcoded into the sentence.
+const article = (word) => (/^[aeiou]/i.test(word) ? "an" : "a");
+const Article = (word) => (/^[aeiou]/i.test(word) ? "An" : "A");
+
+const DESCRIPTION_TEMPLATES = [
+  (adj, name, room) => `${Article(adj)} ${adj} ${name.toLowerCase()} built for the ${room.toLowerCase()}, made to hold up to daily use for years.`,
+  (adj, name, room) => `This ${adj} ${name.toLowerCase()} brings a considered, ${adj} edge to any ${room.toLowerCase()}.`,
+  (adj, name) => `${Article(name)} ${name.toLowerCase()} with ${article(adj)} ${adj} silhouette — simple lines, honest materials, nothing extra.`,
+  (adj, name, room) => `Designed for the ${room.toLowerCase()}, this ${name.toLowerCase()} pairs ${article(adj)} ${adj} look with everyday durability.`,
+];
+
+/**
+ * Shared by seedCatalog.js (new products) and the description backfill,
+ * so a reseeded catalog and a backfilled one read the same way.
+ */
+export const buildDescription = (adjective, singularLabel, roomName = "home") =>
+  DESCRIPTION_TEMPLATES[Math.floor(Math.random() * DESCRIPTION_TEMPLATES.length)](
+    adjective.toLowerCase(),
+    singularLabel,
+    roomName,
+  );
+
 export const buildSpecifications = (singularLabel) => [
   { key: "Assembly Required", value: Math.random() < 0.5 ? "Yes" : "No" },
   { key: "Package Contents", value: `1 x ${singularLabel}` },
