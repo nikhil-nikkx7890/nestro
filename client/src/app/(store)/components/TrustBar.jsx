@@ -27,7 +27,33 @@ const ITEMS = [
   },
 ];
 
-export default function TrustBar() {
+/**
+ * Two placements, one list of items:
+ *
+ * - "band" (default) — the full-width strip near the bottom of the
+ *   homepage, general reassurance after browsing.
+ * - "compact" — a small boxed 2x2 grid on the product detail page,
+ *   beside/below Add to Cart. Same information, but positioned where it
+ *   actually answers a question the shopper has at that moment ("when
+ *   does it arrive, can I return it?") rather than as a homepage banner.
+ */
+export default function TrustBar({ variant = "band" }) {
+  if (variant === "compact") {
+    return (
+      <div className="mt-8 grid grid-cols-1 gap-4 rounded-xl border border-[#E7E5E4] bg-white/60 p-5 sm:grid-cols-2">
+        {ITEMS.map(({ Icon, title, detail }) => (
+          <div key={title} className="flex items-start gap-3">
+            <Icon size={18} className="mt-0.5 shrink-0 text-[#8B5E3C]" />
+            <div>
+              <p className="text-sm font-medium text-[#1C1917]">{title}</p>
+              <p className="text-xs text-[#78716C]">{detail}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <section className="border-y border-[#E7E5E4] bg-white/50">
       <div className="mx-auto grid max-w-[1440px] grid-cols-1 gap-px px-6 py-10 sm:grid-cols-2 sm:px-10 lg:grid-cols-4">

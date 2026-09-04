@@ -14,6 +14,7 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
 import VariantPicker from "./components/VariantPicker";
+import TrustBar from "../../components/TrustBar";
 
 export default function ProductDetailPage() {
   const { productId } = useParams();
@@ -290,6 +291,8 @@ export default function ProductDetailPage() {
               </button>
             </div>
           )}
+
+          <TrustBar variant="compact" />
 
           {product.description && (
             <p className="mt-6 leading-relaxed text-[#57534E]">
