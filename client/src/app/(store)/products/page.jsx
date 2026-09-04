@@ -23,11 +23,12 @@ const buildExtraParams = (filters) => ({
   color: filters.color?.length ? filters.color.join(",") : undefined,
   minPrice: filters.minPrice || undefined,
   maxPrice: filters.maxPrice || undefined,
+  inStock: filters.inStock ? "true" : undefined,
 });
 
 export default function ProductListingPage() {
   return (
-    <Suspense fallback={<div className="mx-auto max-w-6xl px-6 py-14 sm:px-10 text-[#78716C]">Loading products...</div>}>
+    <Suspense fallback={<div className="mx-auto max-w-[1440px] px-6 py-14 sm:px-10 text-[#78716C]">Loading products...</div>}>
       <ProductListingContent />
     </Suspense>
   );
@@ -59,7 +60,7 @@ function ProductListingContent() {
   });
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-14 sm:px-10">
+    <div className="mx-auto max-w-[1440px] px-6 py-14 sm:px-10">
       <div className="mb-12">
         <h1 className="font-heading text-4xl text-[#1C1917]">Shop All</h1>
         <p className="mt-3 max-w-xl text-[#57534E]">
@@ -68,7 +69,7 @@ function ProductListingContent() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[240px_1fr]">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[280px_1fr]">
         <div className="lg:sticky lg:top-8 lg:self-start">
           <ProductFilters filters={filters} onChange={setFilters} />
         </div>
@@ -84,7 +85,7 @@ function ProductListingContent() {
 
           {!loading && !error && products.length > 0 && (
             <>
-              <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-x-8 gap-y-12 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                 {products.map((product) => (
                   <ProductCard key={product._id} product={product} />
                 ))}

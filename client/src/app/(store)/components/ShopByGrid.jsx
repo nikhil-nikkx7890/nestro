@@ -10,7 +10,7 @@ export default function ShopByGrid({ title, items, hrefFor }) {
   if (items.length === 0) return null;
 
   return (
-    <section className="mx-auto max-w-6xl px-6 py-12 sm:px-10">
+    <section className="mx-auto max-w-[1440px] px-6 py-12 sm:px-10">
       <h2 className="font-heading text-2xl text-[#1C1917]">{title}</h2>
 
       <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">

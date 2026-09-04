@@ -66,7 +66,7 @@ export default function HeroCarousel({ categories }) {
               }}
             >
               <div className="absolute inset-0 bg-black/45" />
-              <div className="relative mx-auto max-w-6xl px-6 text-white sm:px-10">
+              <div className="relative mx-auto max-w-[1440px] px-6 text-white sm:px-10">
                 <p className="text-xs uppercase tracking-[0.2em] text-[#D6BFA7]">
                   Featured Collection
                 </p>

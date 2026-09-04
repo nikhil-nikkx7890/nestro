@@ -108,7 +108,7 @@ export default function ProductDetailPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-6xl px-6 py-24 text-center text-[#78716C] sm:px-10">
+      <div className="mx-auto max-w-[1440px] px-6 py-24 text-center text-[#78716C] sm:px-10">
         Loading...
       </div>
     );
@@ -116,7 +116,7 @@ export default function ProductDetailPage() {
 
   if (notFound || !product) {
     return (
-      <div className="mx-auto max-w-6xl px-6 py-24 text-center sm:px-10">
+      <div className="mx-auto max-w-[1440px] px-6 py-24 text-center sm:px-10">
         <h1 className="font-heading text-3xl text-[#1C1917]">
           Product not found
         </h1>
@@ -139,7 +139,7 @@ export default function ProductDetailPage() {
     selectedVariant.stock <= selectedVariant.lowStockThreshold;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-14 sm:px-10">
+    <div className="mx-auto max-w-[1440px] px-6 py-14 sm:px-10">
       <div className="grid grid-cols-1 gap-12 lg:grid-cols-2">
         {/* Gallery */}
         <div>
@@ -309,13 +309,30 @@ export default function ProductDetailPage() {
             />
           </div>
 
-          {product.specifications?.length > 0 && (
+          {(product.specifications?.length > 0 || selectedVariant?.dimensions?.length) && (
             <div className="mt-10 border-t border-[#E7E5E4] pt-8">
               <h2 className="font-heading text-xl text-[#1C1917]">
                 Specifications
               </h2>
               <dl className="mt-4 space-y-3">
-                {product.specifications.map((spec, index) => (
+                {selectedVariant?.dimensions?.length && (
+                  <div className="flex justify-between text-sm">
+                    <dt className="text-[#78716C]">Dimensions (L x W x H)</dt>
+                    <dd className="text-[#1C1917]">
+                      {selectedVariant.dimensions.length} x {selectedVariant.dimensions.width} x{" "}
+                      {selectedVariant.dimensions.height} {selectedVariant.dimensions.unit}
+                    </dd>
+                  </div>
+                )}
+                {selectedVariant?.weight?.value && (
+                  <div className="flex justify-between text-sm">
+                    <dt className="text-[#78716C]">Weight</dt>
+                    <dd className="text-[#1C1917]">
+                      {selectedVariant.weight.value} {selectedVariant.weight.unit}
+                    </dd>
+                  </div>
+                )}
+                {product.specifications?.map((spec, index) => (
                   <div key={index} className="flex justify-between text-sm">
                     <dt className="text-[#78716C]">{spec.key}</dt>
                     <dd className="text-[#1C1917]">{spec.value}</dd>

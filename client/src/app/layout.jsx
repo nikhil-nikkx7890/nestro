@@ -6,7 +6,7 @@ import { WishlistProvider } from "@/context/WishlistContext";
 
 export const metadata = {
   title: "Nestro",
-  description: "Admin Dashboard",
+  description: "Furniture built for how you actually live.",
 };
 
 export default function RootLayout({ children }) {

@@ -42,7 +42,7 @@ export default function Navbar() {
 
   return (
     <header className="border-b border-[#E7E5E4]">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6 sm:px-10">
+      <div className="mx-auto flex max-w-[1440px] items-center justify-between px-6 py-6 sm:px-10">
         <Link
           href="/"
           className="font-heading text-2xl font-semibold tracking-tight text-[#1C1917]"

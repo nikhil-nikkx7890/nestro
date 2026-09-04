@@ -17,7 +17,7 @@ export default function WishlistPage() {
 
   if (!ready) {
     return (
-      <div className="mx-auto max-w-6xl px-6 py-24 text-center text-[#78716C] sm:px-10">
+      <div className="mx-auto max-w-[1440px] px-6 py-24 text-center text-[#78716C] sm:px-10">
         Loading...
       </div>
     );
@@ -35,7 +35,7 @@ export default function WishlistPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-14 sm:px-10">
+    <div className="mx-auto max-w-[1440px] px-6 py-14 sm:px-10">
       <h1 className="font-heading text-4xl text-[#1C1917]">Your Wishlist</h1>
 
       {products.length === 0 ? (

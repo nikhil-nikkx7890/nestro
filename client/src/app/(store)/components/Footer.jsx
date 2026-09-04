@@ -3,7 +3,7 @@ import Link from "next/link";
 export default function Footer() {
   return (
     <footer className="bg-stone-950">
-      <div className="mx-auto flex max-w-6xl flex-col justify-between gap-10 px-6 py-12 sm:flex-row sm:px-10">
+      <div className="mx-auto flex max-w-[1440px] flex-col justify-between gap-10 px-6 py-12 sm:flex-row sm:px-10">
         <div>
           <p className="font-heading text-xl font-semibold text-white">
             Nestro

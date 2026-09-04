@@ -72,7 +72,8 @@ export default function ProductFilters({ filters, onChange }) {
     (filters.material?.length ?? 0) > 0 ||
     (filters.color?.length ?? 0) > 0 ||
     Boolean(filters.minPrice) ||
-    Boolean(filters.maxPrice);
+    Boolean(filters.maxPrice) ||
+    Boolean(filters.inStock);
 
   const toggleValue = (key, id) => {
     const current = filters[key] ?? [];
@@ -207,6 +208,20 @@ export default function ProductFilters({ filters, onChange }) {
             );
           })}
         </div>
+      </FilterSection>
+
+      <FilterSection title="Availability">
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-[#57534E] transition hover:text-[#1C1917]">
+          <input
+            type="checkbox"
+            checked={Boolean(filters.inStock)}
+            onChange={() =>
+              onChange({ ...filters, inStock: filters.inStock ? undefined : true })
+            }
+            className="h-4 w-4 rounded border-[#D6D3D1] text-[#8B5E3C] accent-[#8B5E3C]"
+          />
+          In Stock Only
+        </label>
       </FilterSection>
     </aside>
   );
