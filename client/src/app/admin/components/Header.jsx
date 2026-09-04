@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, ChevronDown, LogOut, Search } from "lucide-react";
+import { Bell, ChevronDown, LogOut, Menu, Search } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "@/context/AuthContext";
 
-export default function Header() {
+export default function Header({ onOpenMobileNav }) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -24,10 +24,20 @@ export default function Header() {
   const initial = user?.name?.charAt(0).toUpperCase() || "?";
 
   return (
-    <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-neutral-200 bg-white px-8">
+    <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-neutral-200 bg-white px-4 sm:px-6 lg:px-8">
+      {/* Opens the off-canvas sidebar — below lg it's the only way to
+          reach navigation, since the sidebar sits off-screen there. */}
+      <button
+        onClick={onOpenMobileNav}
+        aria-label="Open navigation"
+        className="-ml-2 rounded-xl p-2 transition hover:bg-neutral-100 lg:hidden"
+      >
+        <Menu size={22} />
+      </button>
+
       {/* Search */}
 
-      <div className="relative w-full max-w-sm">
+      <div className="relative hidden w-full max-w-sm sm:block">
         <Search
           size={18}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
@@ -42,7 +52,7 @@ export default function Header() {
 
       {/* Right */}
 
-      <div className="flex items-center gap-5">
+      <div className="ml-auto flex items-center gap-2 sm:gap-5">
 
         <button className="relative rounded-xl p-2 transition hover:bg-neutral-100">
 
@@ -57,11 +67,14 @@ export default function Header() {
             onClick={() => setMenuOpen((prev) => !prev)}
             className="flex items-center gap-3 rounded-xl p-2 transition hover:bg-neutral-100"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-900 font-semibold text-white">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-neutral-900 font-semibold text-white">
               {initial}
             </div>
 
-            <div className="text-left">
+            {/* Name/role drop away on small screens — the avatar alone
+                identifies the account, and the row has to share a 375px
+                header with the menu button and notifications. */}
+            <div className="hidden text-left sm:block">
               <p className="text-sm font-medium">{user?.name}</p>
 
               <p className="text-xs capitalize text-neutral-500">
@@ -69,7 +82,7 @@ export default function Header() {
               </p>
             </div>
 
-            <ChevronDown size={16} className="text-neutral-500" />
+            <ChevronDown size={16} className="hidden text-neutral-500 sm:block" />
           </button>
 
           {menuOpen && (

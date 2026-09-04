@@ -8,6 +8,10 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function AdminLayout({ children }) {
   const [collapsed, setCollapsed] = useState(false);
+  // Separate from `collapsed`: below lg the sidebar isn't a narrow rail,
+  // it's an off-canvas drawer that's either over the page or off it.
+  // A 256px sidebar on a 375px screen left ~85px for the actual content.
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const { user, loading } = useAuth();
   const router = useRouter();
 
@@ -38,15 +42,25 @@ export default function AdminLayout({ children }) {
 
   return (
     <div className="flex min-h-screen bg-neutral-50">
+      {mobileNavOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          onClick={() => setMobileNavOpen(false)}
+          aria-hidden
+        />
+      )}
+
       <Sidebar
         collapsed={collapsed}
         onToggleCollapse={toggleSidebar}
+        mobileNavOpen={mobileNavOpen}
+        onCloseMobileNav={() => setMobileNavOpen(false)}
       />
 
-      <div className="flex h-screen flex-1 flex-col overflow-hidden">
-        <Header collapsed={collapsed} />
+      <div className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
+        <Header onOpenMobileNav={() => setMobileNavOpen(true)} />
 
-        <main className="flex-1 overflow-y-auto p-8 bg-neutral-50"> 
+        <main className="flex-1 overflow-y-auto bg-neutral-50 p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>

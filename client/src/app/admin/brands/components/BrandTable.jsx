@@ -61,7 +61,8 @@ export default function BrandTable({
                     buttonLabel="Add Brand"
                 />
             ) : (
-                <table className="w-full">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[640px]">
                     <thead>
                     <tr className="border-b border-neutral-200 text-left">
                         <SortableHeader
@@ -105,6 +106,7 @@ export default function BrandTable({
                     ))}
                     </tbody>
                 </table>
+                </div>
             )}
             <Pagination pagination={pagination} onPageChange={setPage} />
         </div>

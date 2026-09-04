@@ -56,7 +56,11 @@ export default function ProductTable({
           buttonLabel="Add Product"
         />
       ) : (
-        <table className="w-full">
+        <div className="overflow-x-auto">
+          {/* Scrolls inside its own container rather than squeezing: a
+              five-column table can't fit a phone, and compressing it
+              wrapped every product name one word per line. */}
+          <table className="w-full min-w-[680px]">
           <thead>
             <tr className="border-b border-neutral-200 text-left">
               <SortableHeader
@@ -98,6 +102,7 @@ export default function ProductTable({
             ))}
           </tbody>
         </table>
+        </div>
       )}
       <Pagination pagination={pagination} onPageChange={setPage} />
     </div>

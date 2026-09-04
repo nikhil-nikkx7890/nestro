@@ -62,7 +62,8 @@ export default function RoomTypeTable({
                     buttonLabel="Add Room Type"
                 />
             ) : (
-                <table className="w-full">
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[640px]">
                     <thead>
                         <tr className="border-b border-neutral-200 text-left">
                             <SortableHeader
@@ -106,6 +107,7 @@ export default function RoomTypeTable({
                         ))}
                     </tbody>
                 </table>
+                </div>
             )}
             <Pagination pagination={pagination} onPageChange={setPage} />
         </div>

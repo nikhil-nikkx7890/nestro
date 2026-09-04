@@ -13,7 +13,12 @@ const STATUS_STYLES = {
 export default function ProductRow({ product, onEdit, onDelete }) {
   return (
     <tr className="border-b border-neutral-100 transition hover:bg-neutral-50">
-      <td className="px-6 py-4 font-medium">{toTitleCase(product.name)}</td>
+      {/* The table already scrolls horizontally on narrow screens, so a
+          name should stay on one line and be scrolled to rather than
+          wrapping into a four-line column. */}
+      <td className="whitespace-nowrap px-6 py-4 font-medium">
+        {toTitleCase(product.name)}
+      </td>
 
       <td className="px-6 py-4 text-neutral-500">
         {product.category?.name ?? "—"}
