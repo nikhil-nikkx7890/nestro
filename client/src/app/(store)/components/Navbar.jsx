@@ -72,16 +72,24 @@ export default function Navbar() {
             Contact
           </Link>
 
-          {isCustomer && (
-            <>
-              <IconLink href="/wishlist" label="Wishlist" count={wishlistProducts.length}>
-                <Heart size={20} />
-              </IconLink>
-              <IconLink href="/cart" label="Cart" count={cart.itemCount}>
-                <ShoppingBag size={20} />
-              </IconLink>
-            </>
-          )}
+          {/* Always visible, even signed out — a store with no cart icon
+              until you log in doesn't read as a store. Both pages already
+              handle the logged-out case by prompting for login, so the
+              icons point there and the counts simply render as zero. */}
+          <IconLink
+            href={isCustomer ? "/wishlist" : "/login"}
+            label="Wishlist"
+            count={isCustomer ? wishlistProducts.length : 0}
+          >
+            <Heart size={20} />
+          </IconLink>
+          <IconLink
+            href={isCustomer ? "/cart" : "/login"}
+            label="Cart"
+            count={isCustomer ? cart.itemCount : 0}
+          >
+            <ShoppingBag size={20} />
+          </IconLink>
 
           {isCustomer && (
             <Link
