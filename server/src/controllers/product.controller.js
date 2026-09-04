@@ -110,7 +110,7 @@ export const getProducts = async (req, res) => {
   // at least one active variant satisfying every selected material/color
   // constraint together — the same combined-variant contract ADR-040
   // established for a single value each, generalized to $in (ADR-048).
-  const { category, brand, roomType, material, color, minPrice, maxPrice } = req.query;
+  const { category, brand, roomType, material, color, minPrice, maxPrice, inStock } = req.query;
 
   const categoryIds = parseIdList(category);
   const brandIds = parseIdList(brand);
@@ -122,7 +122,14 @@ export const getProducts = async (req, res) => {
   if (brandIds.length) filter.brand = { $in: brandIds };
   if (roomTypeIds.length) filter.roomTypes = { $in: roomTypeIds };
 
-  let variantProductIds = null;
+  // Each facet below (material/color, price range, in-stock) is
+  // independent — a product matches if ANY of its active variants
+  // satisfies each facet on its own, not necessarily the same variant
+  // across facets (ADR-048). Every facet contributes its own distinct
+  // list of matching product ids; the product must appear in all of
+  // them, so we intersect whichever facets were actually requested.
+  const facetProductIdLists = [];
+
   if (materialIds.length || colorIds.length) {
     // isActive: only a variant a shopper could actually buy counts as a
     // match — a product whose only matching variant was retired
@@ -131,32 +138,28 @@ export const getProducts = async (req, res) => {
     const variantMatch = { isActive: true };
     if (materialIds.length) variantMatch.material = { $in: materialIds };
     if (colorIds.length) variantMatch.color = { $in: colorIds };
-    variantProductIds = await ProductVariant.distinct("product", variantMatch);
+    facetProductIdLists.push(await ProductVariant.distinct("product", variantMatch));
   }
 
-  // Price range is a genuinely independent facet from material/color — a
-  // product matches if ANY of its active variants falls in range,
-  // regardless of whether that's the same variant that matched
-  // material/color (ADR-048).
-  let priceProductIds = null;
   const min = parsePrice(minPrice);
   const max = parsePrice(maxPrice);
   if (min !== undefined || max !== undefined) {
     const priceMatch = { isActive: true, price: {} };
     if (min !== undefined) priceMatch.price.$gte = min;
     if (max !== undefined) priceMatch.price.$lte = max;
-    priceProductIds = await ProductVariant.distinct("product", priceMatch);
+    facetProductIdLists.push(await ProductVariant.distinct("product", priceMatch));
   }
 
-  if (variantProductIds !== null || priceProductIds !== null) {
-    let matchingProductIds;
-    if (variantProductIds !== null && priceProductIds !== null) {
-      const priceSet = new Set(priceProductIds.map(String));
-      matchingProductIds = variantProductIds.filter((id) => priceSet.has(String(id)));
-    } else {
-      matchingProductIds = variantProductIds !== null ? variantProductIds : priceProductIds;
-    }
-    filter._id = { $in: matchingProductIds };
+  if (inStock === "true") {
+    facetProductIdLists.push(
+      await ProductVariant.distinct("product", { isActive: true, stock: { $gt: 0 } }),
+    );
+  }
+
+  if (facetProductIdLists.length) {
+    const [first, ...rest] = facetProductIdLists.map((list) => new Set(list.map(String)));
+    const intersected = [...first].filter((id) => rest.every((set) => set.has(id)));
+    filter._id = { $in: intersected };
   }
 
   const [products, total] = await Promise.all([
@@ -171,9 +174,37 @@ export const getProducts = async (req, res) => {
     Product.countDocuments(filter),
   ]);
 
+  // One aggregation for the whole page, not one query per product — a
+  // listing card needs a "from ₹X" price and a real discount badge, but
+  // ADR-039 deliberately left price off the card originally specifically
+  // to avoid an N+1 fetch. Grouping across the page's product ids in a
+  // single ProductVariant query keeps that guarantee: always exactly one
+  // extra query, regardless of page size.
+  const productIds = products.map((p) => p._id);
+  const priceRows = await ProductVariant.aggregate([
+    { $match: { product: { $in: productIds }, isActive: true } },
+    {
+      $group: {
+        _id: "$product",
+        minPrice: { $min: "$price" },
+        maxCompareAtPrice: { $max: "$compareAtPrice" },
+      },
+    },
+  ]);
+  const priceByProduct = new Map(priceRows.map((r) => [String(r._id), r]));
+
+  const productsWithPricing = products.map((product) => {
+    const pricing = priceByProduct.get(String(product._id));
+    return {
+      ...product.toObject(),
+      fromPrice: pricing?.minPrice ?? null,
+      compareAtPrice: pricing?.maxCompareAtPrice ?? null,
+    };
+  });
+
   return res.status(200).json({
     success: true,
-    data: products,
+    data: productsWithPricing,
     pagination: {
       total,
       page,
