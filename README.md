@@ -5,6 +5,7 @@
 ![Express](https://img.shields.io/badge/Express-5-lightgrey)
 ![MongoDB](https://img.shields.io/badge/MongoDB-Database-green)
 ![Status](https://img.shields.io/badge/Status-Active%20Development-blue)
+[![CI](https://github.com/nikhil-nikkx7890/nestro/actions/workflows/ci.yml/badge.svg)](https://github.com/nikhil-nikkx7890/nestro/actions/workflows/ci.yml)
 
 ### 🔗 Live
 
