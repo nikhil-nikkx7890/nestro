@@ -6,6 +6,36 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-Database-green)
 ![Status](https://img.shields.io/badge/Status-Active%20Development-blue)
 
+### 🔗 Live
+
+| | |
+|---|---|
+| **Storefront** | https://nestro-nikkx.vercel.app |
+| **API** | https://nestro-api.onrender.com |
+
+> The API runs on Render's free tier and sleeps after ~15 minutes of inactivity — the first request may take 30–50 seconds to wake it.
+>
+> **Nestro is a portfolio project, not a real store.** The catalog, reviews and accounts are demo data, and nothing on it can actually be purchased.
+
+### 🔑 Demo Accounts
+
+Sign in at [/login](https://nestro-nikkx.vercel.app/login) to try either side of the app.
+
+| Role | Email | Password | What you can do |
+|---|---|---|---|
+| **Admin** | `admin@nestro.com` | `changeme123` | Full admin panel — manage products, variants, master data, and moderate reviews |
+| **Customer** | `priya.demo@nestro.test` | `demopassword123` | Browse, filter, add to cart, save to wishlist, write and edit reviews |
+
+A few notes on what these accounts can and can't do:
+
+- **Admins can't post reviews** — reviews are customer-only by design, the same rule Cart and Wishlist follow. Sign in as the customer for that.
+- **Neither account can change its own password** — the profile endpoint accepts a name and nothing else, so the demo can't be locked.
+- Anything an admin edits or deletes here is demo data, and the seed scripts rebuild it from scratch.
+
+Other demo customers exist (`arjun.demo@`, `neha.demo@`, `rohit.demo@`, `ananya.demo@`, `vikram.demo@` — all `@nestro.test`, same password) — useful if you want to see a product's reviews from more than one account.
+
+---
+
 > 🚧 **Nestro is currently under active development.**
 >
 > Nestro is a production-style furniture e-commerce platform that I'm building to learn professional full-stack software engineering while creating a portfolio-quality project. Every feature is developed with scalability, clean architecture, and industry best practices in mind.
@@ -526,12 +556,44 @@ A full correctness and security review of the backend, completed before starting
 
 ### Automated Testing
 
-101 Jest + Supertest integration tests across 11 suites (Categories, Room Types, Brands, Materials, Colors, Products, Variants, Authentication, Cart, Wishlist, and Contact), covering the main success path and the most likely failure path for each route:
+130 Jest + Supertest integration tests across 13 suites (Categories, Room Types, Brands, Materials, Colors, Products, Variants, Authentication, Cart, Wishlist, Contact, Newsletter, and Reviews), covering the main success path and the most likely failure path for each route:
 
 - Runs against an in-memory MongoDB (`mongodb-memory-server`) that exists only for the duration of the test run — real data is never touched
 - Explicit coverage for the authorization layer itself: an unauthenticated request and a wrong-role request are both tested against a protected route, not just the "happy path"
 - Regression tests for a real access-control gap found and fixed in a pre-deployment security audit
 - Introduced incrementally alongside each module rather than deferred to the end
+
+---
+
+### Reviews
+
+- Real `Review` model — not a rating field on the Product. Star ratings shown anywhere on the storefront are **computed by aggregation** from actual review documents, so they can never drift out of sync with the reviews people wrote
+- One review per customer per product, enforced by a compound unique index — a repeat attempt gets a clear "edit yours instead" rather than a raw duplicate-key error
+- Customer-only creation (a logged-in admin is explicitly forbidden, same rule as Cart and Wishlist); owner-only editing; deletion by the owner **or** an admin
+- The delete rule is deliberately *ownership* logic in the controller rather than a role gate on the route — "may this kind of user do this" and "may this user touch this record" are different questions
+- Rating summary computed with a distribution breakdown (how many 5-star, 4-star, …), powering the rating bars on the product page
+- Admin moderation page — read and delete only, with rating filter and full-text search over review comments. No create/edit path exists, because reviews are customer-only
+- Ratings reach product listing cards through the same one-aggregation-per-page approach as prices — never an N+1 query, regardless of page size
+- A product with no reviews reports `null`, not `0` — the UI renders no stars at all rather than five empty ones reading as "rated zero"
+
+**On honesty:** these are seeded demo reviews, and the site says so in its footer. The distinction this project draws is between a *hardcoded claim* (a "4.8/5" typed into the markup — never acceptable) and a *real system carrying demo data* (a review collection, real endpoints, real aggregation — the same kind of demo data as the seeded catalog itself). A "Bestseller" badge is deliberately **not** built, because nothing can compute it until Orders exist.
+
+---
+
+### Deployment
+
+- Frontend on **Vercel**, backend on **Render**, database on **MongoDB Atlas** — deploying from `main` on every push
+- Because the two apps live on different domains, the auth cookie had to move to `sameSite: "none"` in production. That silently removes the CSRF protection `sameSite: "lax"` was providing, so a dedicated **Origin-verification middleware** was added on every write route in the same change — reading from the same allow-list CORS uses, so the two can't disagree
+- Required environment variables are validated at boot, so a misconfigured deploy fails immediately and visibly rather than surfacing as a confusing 500 on the first request
+
+---
+
+### Catalog Seeding at Scale
+
+- `npm run seed:catalog` builds a realistic catalog — **132 products, 386 variants** — with photography fetched live from the **Unsplash Search API** rather than a hand-maintained list of image URLs
+- Photos are pooled per category and uploaded to Cloudinary **once**, then reused across that category's products — capping a would-be 400+ uploads at ~300, one time
+- **Resumable**: a category that already has products is skipped, so an interrupted run continues where it stopped. This wasn't hypothetical — the first run hit Unsplash's hourly rate limit partway through
+- A companion backfill script fills specifications, variant dimensions and weight, and varied product descriptions, and retries any category whose image search came back empty
 
 ---
 
@@ -583,7 +645,10 @@ A full-codebase review carried out ahead of the first deployment, separate from 
 - ✅ Wishlist
 - ✅ Shopping Cart
 - ✅ About / Contact / Account pages
-- Site-wide Search (filters are done; a dedicated search bar is not)
+- ✅ Site-wide Search (backed by a MongoDB text index)
+- ✅ Sort, Loading Skeletons, Breadcrumbs
+- ✅ Product Reviews & Ratings
+- ✅ Fully Responsive (mobile / tablet / laptop / large screens)
 
 ---
 
@@ -670,6 +735,26 @@ CLOUDINARY_API_KEY=your_cloudinary_api_key
 CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 JWT_SECRET=a_long_random_secret_string
 JWT_EXPIRES_IN=7d
+
+# Optional — only read by `npm run seed:catalog`.
+# Free key from unsplash.com/developers.
+UNSPLASH_ACCESS_KEY=your_unsplash_access_key
+```
+
+> `CLIENT_URL` accepts a comma-separated list and drives **both** CORS and the Origin-verification middleware. In production it must exactly match the deployed frontend's domain, or every write request will be rejected with a 403.
+
+---
+
+### Seed Scripts
+
+Run in this order against a fresh database:
+
+```bash
+npm run seed              # Master Data (categories, brands, materials, colors, room types)
+npm run seed:master-images  # photography for categories / room types / materials
+npm run seed:admin        # an admin account
+npm run seed:catalog      # products + variants with photography (needs UNSPLASH_ACCESS_KEY)
+npm run seed:reviews      # demo customers + product reviews
 ```
 
 ---
@@ -763,9 +848,19 @@ Rather than only focusing on building features, I aim to understand the reasonin
 
 🟢 Customer Store (Listing, Filters, Product Detail, Cart, Wishlist, Home/About/Contact/Account)
 
-🟢 Automated Testing (101 Jest/Supertest tests)
+🟢 Automated Testing (130 Jest/Supertest tests)
 
 🟢 Pre-Deployment Security Audit
+
+🟢 **Deployed & Live** (Vercel + Render + Atlas)
+
+🟢 Catalog at Scale (132 products, 386 variants, real photography)
+
+🟢 Reviews & Ratings (+ admin moderation)
+
+🟢 Search, Sort & Responsive Pass
+
+⚪ Checkout & Payments
 
 ⚪ Orders
 
