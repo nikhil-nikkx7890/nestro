@@ -35,57 +35,67 @@ export default function ProductsPage() {
 
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleteMessage, setDeleteMessage] = useState("");
+  // False until the server has answered 409 and named what the cascade
+  // would take with it; true means the next confirm carries confirmCascade.
+  const [cascadeWarned, setCascadeWarned] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const closeDelete = () => {
+    setDeleteTarget(null);
+    setDeleteMessage("");
+    setCascadeWarned(false);
+  };
 
   const startDelete = (product) => {
     setDeleteTarget(product);
-
-    if (product.variantCount > 0) {
-      setDeleteMessage(
-        `This product has ${product.variantCount} variant${product.variantCount > 1 ? "s" : ""}. Deleting "${product.name}" will also delete all of its variants.`,
-      );
-    } else {
-      setDeleteMessage(`Are you sure you want to delete "${product.name}"?`);
-    }
+    setCascadeWarned(false);
+    setDeleteMessage(`Are you sure you want to delete "${product.name}"?`);
   };
 
+  /**
+   * One handler for both passes. The first click deletes without
+   * `confirmCascade`; if the product has children the server refuses with
+   * 409 and a message naming them, which is rendered as the new modal body
+   * and re-armed for a second click that does carry `confirmCascade`.
+   *
+   * The message is taken from the server verbatim rather than rebuilt here.
+   * The list rows carry `variantCount`, but a review count that matched the
+   * server's would mean duplicating the controller's own counting and
+   * pluralisation in a second place — and the row is a snapshot from the
+   * last fetch, while the 409 is counted at the moment of the delete.
+   */
   const confirmDelete = async () => {
     try {
       setIsDeleting(true);
 
-      // First attempt: no confirmCascade. If the product has variants
-      // the backend responds with success: false instead of throwing,
-      // so we check response.success rather than relying on a caught error.
-      const response = await productService.remove(deleteTarget._id);
+      const response = await productService.remove(
+        deleteTarget._id,
+        cascadeWarned ? { confirmCascade: true } : {},
+      );
 
-      if (response.success === false) {
-        // Backend confirmed there's a cascade — re-ask with the exact
-        // count from the server, the source of truth over the list's value.
-        setDeleteMessage(`${response.message} This action cannot be undone.`);
+      toast.success(response.message || "Product deleted successfully.");
+      closeDelete();
+      await refetch();
+    } catch (err) {
+      const { status, data } = err.response ?? {};
+
+      // The cascade gate (ADR-057), not a failure: 409 carrying the child
+      // counts. Anything else — including a 409 from some other guard — is
+      // a real error and still gets a toast.
+      const isCascadeGate =
+        status === 409 &&
+        (data?.variantCount !== undefined || data?.reviewCount !== undefined);
+
+      if (isCascadeGate) {
+        // No " This action cannot be undone." appended: the modal already
+        // renders that line itself from `isIrreversible`.
+        setDeleteMessage(data.message);
+        setCascadeWarned(true);
         return;
       }
 
-      toast.success("Product deleted successfully.");
-      setDeleteTarget(null);
-      await refetch();
-    } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || "Failed to delete product.");
-    } finally {
-      setIsDeleting(false);
-    }
-  };
-
-  const confirmCascadeDelete = async () => {
-    try {
-      setIsDeleting(true);
-      await productService.remove(deleteTarget._id, { confirmCascade: true });
-      toast.success("Product and its variants deleted successfully.");
-      setDeleteTarget(null);
-      await refetch();
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Failed to delete product.");
+      toast.error(data?.message || "Failed to delete product.");
     } finally {
       setIsDeleting(false);
     }
@@ -130,12 +140,14 @@ export default function ProductsPage() {
 
       <DeleteConfirmationModal
         isOpen={!!deleteTarget}
-        onClose={() => setDeleteTarget(null)}
-        onConfirm={
-          deleteTarget?.variantCount > 0 ? confirmCascadeDelete : confirmDelete
-        }
+        onClose={closeDelete}
+        onConfirm={confirmDelete}
         title="Delete Product"
         message={deleteMessage}
+        // Names the wider action once the server has said there are
+        // children, so the second click doesn't look like a repeat of the
+        // first one that appeared to do nothing.
+        confirmText={cascadeWarned ? "Delete everything" : "Delete"}
         isSubmitting={isDeleting}
       />
     </div>
