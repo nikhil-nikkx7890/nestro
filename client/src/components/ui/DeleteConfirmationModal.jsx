@@ -8,6 +8,11 @@ export default function DeleteConfirmationModal({
                                                     message,
                                                     confirmText = "Delete",
                                                     isSubmitting = false,
+                                                    // Not every confirmed action is permanent — deactivating a
+                                                    // user is reversible from the same screen, so the warning
+                                                    // (and the "Deleting..." label) would be simply untrue there.
+                                                    isIrreversible = true,
+                                                    submittingText,
                                                 }
 ) {
     if (!isOpen) return null;
@@ -27,9 +32,11 @@ export default function DeleteConfirmationModal({
                         {message}
                     </p>
 
-                    <p className="mt-3 text-sm font-medium text-red-600">
-                        This action cannot be undone.
-                    </p>
+                    {isIrreversible && (
+                        <p className="mt-3 text-sm font-medium text-red-600">
+                            This action cannot be undone.
+                        </p>
+                    )}
                 </div>
                 {/* Footer */}
                 <div className="flex justify-end gap-3 border-t border-neutral-200 px-6 py-4">
@@ -48,7 +55,7 @@ export default function DeleteConfirmationModal({
                         disabled={isSubmitting}
                         className="rounded-xl bg-red-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        {isSubmitting ? "Deleting..." : confirmText}
+                        {isSubmitting ? submittingText || "Deleting..." : confirmText}
                     </button>
                 </div>
             </div>

@@ -12,7 +12,6 @@ import {
     Palette,
     Package,
     Star,
-    ShoppingCart,
     Users,
     Settings,
 } from "lucide-react";
@@ -63,16 +62,9 @@ const menuItems = [
             },
         ],
     },
-    {
-        section: "SALES",
-        items: [
-            {
-                name: "Orders",
-                href: "/admin/orders",
-                icon: ShoppingCart,
-            },
-        ],
-    },
+    // SALES / Orders is deliberately absent until the Commerce phase
+    // builds it — a nav item that 404s is worse than one that isn't there
+    // yet, the same reasoning applied to the storefront footer's links.
     {
         section: "SYSTEM",
         items: [
