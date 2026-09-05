@@ -439,11 +439,30 @@ export const deleteProduct = async (req, res) => {
     throw new AppError("Product not found.", 404);
   }
 
-  if (product.variantCount > 0 && req.query.confirmCascade !== "true") {
+  // Reviews cascade too (ADR-057). They were previously left behind,
+  // orphaning rows that no product could ever resolve — nothing broke
+  // visibly (reviews are read scoped by productId, and the admin table
+  // already falls back on a null populate), but the rows accumulated
+  // forever and still counted towards the moderation page's totals.
+  const reviewCount = await Review.countDocuments({ product: productId });
+
+  // The confirmation gate now covers both children, not just variants: a
+  // product with no variants but real customer reviews was previously
+  // deleted with no warning at all.
+  if ((product.variantCount > 0 || reviewCount > 0) && req.query.confirmCascade !== "true") {
+    const parts = [];
+    if (product.variantCount > 0) {
+      parts.push(`${product.variantCount} variant${product.variantCount > 1 ? "s" : ""}`);
+    }
+    if (reviewCount > 0) {
+      parts.push(`${reviewCount} review${reviewCount > 1 ? "s" : ""}`);
+    }
+
     return res.status(409).json({
       success: false,
-      message: `This product has ${product.variantCount} variant${product.variantCount > 1 ? "s" : ""}. Deleting it will also delete all of its variants.`,
+      message: `Deleting this product will also delete its ${parts.join(" and ")}.`,
       variantCount: product.variantCount,
+      reviewCount,
     });
   }
 
@@ -462,6 +481,7 @@ export const deleteProduct = async (req, res) => {
   }
 
   await ProductVariant.deleteMany({ product: productId });
+  await Review.deleteMany({ product: productId });
 
   for (const image of product.images) {
     if (image.publicId) {
