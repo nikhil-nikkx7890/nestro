@@ -15,7 +15,9 @@ import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 
 import VariantPicker from "./components/VariantPicker";
+import ProductReviews from "./components/ProductReviews";
 import TrustBar from "../../components/TrustBar";
+import StarRating from "../../components/StarRating";
 
 export default function ProductDetailPage() {
   const { productId } = useParams();
@@ -34,6 +36,7 @@ export default function ProductDetailPage() {
   const [quantity, setQuantity] = useState(1);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
+  const [reviewSummary, setReviewSummary] = useState(null);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -265,6 +268,15 @@ export default function ProductDetailPage() {
             <p className="mt-2 text-[#78716C]">{product.brand.name}</p>
           )}
 
+          {/* Kept in sync with the reviews section below: posting or
+              deleting a review updates this without a page reload. */}
+          <StarRating
+            rating={reviewSummary?.averageRating ?? product.averageRating}
+            count={reviewSummary?.reviewCount ?? product.reviewCount}
+            size={16}
+            className="mt-3"
+          />
+
           {selectedVariant && (
             <div className="mt-6 flex items-baseline gap-3">
               <span className="text-2xl font-semibold text-[#1C1917]">
@@ -391,6 +403,8 @@ export default function ProductDetailPage() {
           )}
         </div>
       </div>
+
+      <ProductReviews productId={productId} onSummaryChange={setReviewSummary} />
     </div>
   );
 }

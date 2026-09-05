@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 
 import { toTitleCase, formatPaise } from "@/utils/formatters";
+import StarRating from "../../components/StarRating";
 
 const NEW_ARRIVAL_WINDOW_DAYS = 21;
 
@@ -70,6 +71,15 @@ export default function ProductCard({ product }) {
         {product.brand?.name && (
           <p className="text-xs text-[#78716C] sm:text-sm">{product.brand.name}</p>
         )}
+
+        {/* Computed from real Review documents by the listing aggregation
+            — renders nothing when a product has no reviews yet. */}
+        <StarRating
+          rating={product.averageRating}
+          count={product.reviewCount}
+          size={13}
+          className="pt-0.5"
+        />
 
         {product.fromPrice != null && (
           <div className="flex flex-wrap items-baseline gap-x-2 pt-1">
