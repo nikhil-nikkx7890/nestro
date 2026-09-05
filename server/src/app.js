@@ -23,6 +23,23 @@ import { verifyOrigin } from "./middlewares/verifyOrigin.js";
 
 const app = express();
 
+/**
+ * Render (and any platform proxy) terminates TLS and forwards the request,
+ * so without this every request reports the proxy's address as req.ip and
+ * express-rate-limit buckets the entire site under one key — the general
+ * limiter gets consumed collectively, and the stricter auth limiter inverts
+ * into a denial of service where twenty failed logins lock out everyone
+ * (ADR-058).
+ *
+ * `1`, not `true`: trust exactly one hop, the platform proxy that actually
+ * sits in front of this app. `true` trusts a client-supplied
+ * X-Forwarded-For, which would let a caller mint a fresh rate-limit key per
+ * request and remove the limit entirely.
+ *
+ * Must be set before the limiters are mounted below.
+ */
+app.set("trust proxy", 1);
+
 const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:3000")
   .split(",")
   .map((origin) => origin.trim());
