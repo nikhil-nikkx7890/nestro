@@ -210,6 +210,70 @@ describe("GET /api/variants/:variantId", () => {
 
     expect(res.status).toBe(404);
   });
+
+  // ADR-058. This endpoint is the third route exposing variant data and was
+  // the one ADR-043 missed when it gated the sibling listing route above —
+  // an anonymous caller holding a variant id could read a draft product's
+  // SKU, price and stock.
+  it("hides a draft product's variant from an anonymous caller (ADR-058)", async () => {
+    const { variant } = await createVariantOn("draft");
+
+    const res = await request(app).get(`/api/variants/${variant._id}`);
+
+    expect(res.status).toBe(404);
+    // Nothing about the variant leaks alongside the 404.
+    expect(res.body.data).toBeUndefined();
+  });
+
+  it("hides an archived product's variant from an anonymous caller", async () => {
+    const { variant } = await createVariantOn("archived");
+
+    const res = await request(app).get(`/api/variants/${variant._id}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("hides a draft product's variant from a logged-in customer", async () => {
+    const { variant } = await createVariantOn("draft");
+    const customerAgent = await createCustomerAgent();
+
+    const res = await customerAgent.get(`/api/variants/${variant._id}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("gives a hidden variant the identical 404 a missing one gets, never a distinct response", async () => {
+    const { variant } = await createVariantOn("draft");
+    const fakeId = new mongoose.Types.ObjectId().toString();
+
+    const hidden = await request(app).get(`/api/variants/${variant._id}`);
+    const missing = await request(app).get(`/api/variants/${fakeId}`);
+
+    // Identical status AND message — a distinct "exists but hidden" reply
+    // would confirm the id belongs to a real unpublished product.
+    expect(hidden.status).toBe(missing.status);
+    expect(hidden.body.message).toBe(missing.body.message);
+  });
+
+  it("lets an admin read a draft product's variant", async () => {
+    const { variant } = await createVariantOn("draft");
+    const adminAgent = await createAdminAgent();
+
+    const res = await adminAgent.get(`/api/variants/${variant._id}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.sku).toBe("TEST-SKU-0001");
+  });
+
+  it("still returns `product` as a bare id, not a populated object", async () => {
+    const { product, variant } = await createVariantOn("published");
+
+    const res = await request(app).get(`/api/variants/${variant._id}`);
+
+    // The status gate looks the product up separately rather than via
+    // .populate("product"), specifically so this response shape is unchanged.
+    expect(res.body.data.product).toBe(product._id.toString());
+  });
 });
 
 describe("DELETE /api/variants/:variantId", () => {

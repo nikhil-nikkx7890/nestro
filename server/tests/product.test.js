@@ -581,3 +581,57 @@ describe("GET /api/products/filter-options", () => {
     expect(res.status).toBe(200);
   });
 });
+
+// ADR-058. `?search=a&search=b` arrives as an array of strings, which Mongo
+// can't cast at $text.$search — that threw a CastError the errorHandler
+// turned into a 500, on every list route, for any unauthenticated caller.
+// buildQueryFeatures now treats a non-string value as "no search".
+describe("Repeated query params (ADR-058)", () => {
+  const seedOne = async () => {
+    const { category, brand, roomType } = await createMasterData();
+    await Product.create({
+      name: "Published Sofa",
+      status: "published",
+      category: category._id,
+      brand: brand._id,
+      roomTypes: [roomType._id],
+    });
+  };
+
+  it("does not 500 when search is supplied twice", async () => {
+    await seedOne();
+
+    const res = await request(app).get("/api/products?search=a&search=b");
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  it("ignores the repeated value rather than filtering on it", async () => {
+    await seedOne();
+
+    const res = await request(app).get("/api/products?search=zzzz&search=yyyy");
+
+    // Neither term matches anything, so treating the array as a search would
+    // return 0 rows. Falling back to "no search" returns the full list.
+    expect(res.body.data).toHaveLength(1);
+  });
+
+  it("still applies a single, well-formed search term", async () => {
+    await seedOne();
+
+    const hit = await request(app).get("/api/products?search=Published");
+    const miss = await request(app).get("/api/products?search=Nonexistent");
+
+    expect(hit.body.data).toHaveLength(1);
+    expect(miss.body.data).toHaveLength(0);
+  });
+
+  it("holds on another list route too, since the guard is in buildQueryFeatures", async () => {
+    await seedOne();
+
+    const res = await request(app).get("/api/categories?search=a&search=b");
+
+    expect(res.status).toBe(200);
+  });
+});
