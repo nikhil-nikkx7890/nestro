@@ -171,16 +171,31 @@ describe("GET /api/products/:productId/variants", () => {
 });
 
 describe("GET /api/variants/:variantId", () => {
-  it("returns the variant when it exists", async () => {
+  /**
+   * Creates a product in the given status plus one variant on it.
+   * `createTestProduct` defaults to status "draft", which is the case that
+   * matters most here.
+   */
+  const createVariantOn = async (status) => {
     const masterData = await createMasterData();
     const product = await createTestProduct(masterData);
+    if (status !== "draft") {
+      product.status = status;
+      await product.save();
+    }
     const variant = await ProductVariant.create({
       product: product._id,
       sku: "TEST-SKU-0001",
       price: 100000,
+      stock: 7,
       material: masterData.material._id,
       color: masterData.color._id,
     });
+    return { product, variant };
+  };
+
+  it("returns the variant when its product is published", async () => {
+    const { variant } = await createVariantOn("published");
 
     const res = await request(app).get(`/api/variants/${variant._id}`);
 

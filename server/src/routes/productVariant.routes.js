@@ -30,7 +30,10 @@ router
 // Flat — a variant has its own _id, no need to repeat product context
 router
   .route("/variants/:variantId")
-  .get(validateObjectId("variantId"), getVariantById)
+  // optionalAuthenticate, same as the sibling listing route above: the
+  // controller needs to know whether the caller is an admin before it can
+  // decide whether an unpublished product's variant is visible (ADR-058).
+  .get(optionalAuthenticate, validateObjectId("variantId"), getVariantById)
   .put(
     authenticate,
     authorize("admin"),

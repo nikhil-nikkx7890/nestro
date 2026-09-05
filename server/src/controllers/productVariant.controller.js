@@ -159,6 +159,23 @@ export const getVariantById = async (req, res) => {
     throw new AppError("Product variant not found.", 404);
   }
 
+  // Same visibility rule as getVariantsByProduct and getProductById
+  // (ADR-036): a non-admin caller must never see variant data (price,
+  // stock, SKU) for a product that isn't published. This endpoint was
+  // missed when ADR-043 gated its sibling — three routes expose the same
+  // data and only two were reasoned about (ADR-058).
+  //
+  // Looked up separately rather than via .populate("product") so the
+  // response keeps returning `product` as a bare id, exactly as before.
+  const product = await Product.findById(variant.product).select("status");
+
+  // Deliberately the same 404 and the same message as a genuinely missing
+  // variant — never a distinct "exists but hidden" response, which would
+  // confirm the id belongs to a real unpublished product.
+  if (req.user?.role !== "admin" && product?.status !== "published") {
+    throw new AppError("Product variant not found.", 404);
+  }
+
   return res.status(200).json({
     success: true,
     data: variant,
