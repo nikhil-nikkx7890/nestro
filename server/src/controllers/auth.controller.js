@@ -1,7 +1,21 @@
+import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
 import AppError from "../utils/AppError.js";
 import { generateToken } from "../utils/jwt.js";
 import { authCookieOptions } from "../utils/authCookie.js";
+
+/**
+ * A real bcrypt hash of a value nothing can log in with, compared against
+ * when no user matches so that both branches of login pay the same cost
+ * (ADR-058). Generated at cost 10, matching user.model.js's pre-save hook —
+ * a cheaper hash here would leave a smaller but still measurable gap.
+ *
+ * Hardcoded rather than hashed at boot: it must be a constant so the work
+ * is identical on every request, and it is not a credential — no account
+ * has this hash, and comparing against it always fails.
+ */
+const DUMMY_PASSWORD_HASH =
+  "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy";
 
 /**
  * Publicly self-registers a new account. Always creates role: "customer" —
@@ -46,7 +60,17 @@ export const login = async (req, res) => {
   // Deliberately the same error message whether the email doesn't exist
   // or the password is wrong — a different message for each would let an
   // attacker enumerate which emails have accounts.
-  if (!user || !(await user.comparePassword(password))) {
+  //
+  // The message alone wasn't enough. `!user || !(await user.compare...)`
+  // short-circuits, so an unknown email skipped bcrypt entirely and
+  // returned ~16x faster than a known one — the constant message defeated
+  // by non-constant time (ADR-058). Comparing against a fixed dummy hash
+  // on the no-user path makes both branches do the same work.
+  const passwordMatches = user
+    ? await user.comparePassword(password)
+    : await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+
+  if (!user || !passwordMatches) {
     throw new AppError("Invalid email or password.", 401);
   }
 
