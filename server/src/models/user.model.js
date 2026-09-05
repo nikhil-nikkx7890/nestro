@@ -47,6 +47,11 @@ const userSchema = new mongoose.Schema(
   },
 );
 
+// Powers the admin Users list's search box. buildQueryFeatures' `search`
+// param is a $text query, so without this index searching would silently
+// match nothing at all.
+userSchema.index({ name: "text", email: "text" });
+
 // Hashes the password before saving — but only when it's actually new or
 // changed. Without this check, saving a user for an unrelated reason
 // (e.g. toggling isActive) would re-hash the already-hashed password,
