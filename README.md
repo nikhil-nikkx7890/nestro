@@ -165,7 +165,14 @@ Through Nestro, I aim to learn and practice:
 
 ## Planned Integrations
 
-- Refresh Tokens
+Next, in this order:
+
+1. **Email infrastructure** — Nestro currently has no email-sending integration at all (Contact and Newsletter both store submissions only). This is the blocker behind everything below.
+2. **Password reset** — the most valuable of the four. Right now a customer who forgets their password has permanently lost the account.
+3. **Email verification on register** — likely verify-but-don't-block, so trying the demo doesn't require a real inbox.
+4. **Passwordless OTP login** — as an *alternative* sign-in path rather than mandatory 2FA, which is uncommon on customer storefront accounts.
+
+Also planned: Refresh Tokens, and a Super Admin role once there's genuinely more than one admin to manage.
 
 ---
 
@@ -556,12 +563,22 @@ A full correctness and security review of the backend, completed before starting
 
 ### Automated Testing
 
-130 Jest + Supertest integration tests across 13 suites (Categories, Room Types, Brands, Materials, Colors, Products, Variants, Authentication, Cart, Wishlist, Contact, Newsletter, and Reviews), covering the main success path and the most likely failure path for each route:
+141 Jest + Supertest integration tests across 14 suites (Categories, Room Types, Brands, Materials, Colors, Products, Variants, Authentication, Users, Cart, Wishlist, Contact, Newsletter, and Reviews), covering the main success path and the most likely failure path for each route:
 
 - Runs against an in-memory MongoDB (`mongodb-memory-server`) that exists only for the duration of the test run — real data is never touched
 - Explicit coverage for the authorization layer itself: an unauthenticated request and a wrong-role request are both tested against a protected route, not just the "happy path"
 - Regression tests for a real access-control gap found and fixed in a pre-deployment security audit
 - Introduced incrementally alongside each module rather than deferred to the end
+
+---
+
+### User Directory & Settings
+
+- Admin **Users** page — every registered account, with search, role filter and status filter
+- **Deactivation, not deletion.** A User is referenced by Cart, Wishlist and Review, so deleting one would orphan all three. Deactivating blocks the account on its **very next request** — the auth middleware re-reads the user from the database on every request rather than trusting the token, so it takes effect immediately instead of waiting out a 7-day JWT
+- Two guards against unrecoverable states: an admin can't change their own status, and the last active admin can't be deactivated
+- **No role editing by design** — promoting an account to admin is Super Admin territory, deliberately deferred until there's a real second-admin scenario. The validator is strict, so a `role` field in the payload is rejected rather than silently ignored
+- Admin **Settings** page — contains only what actually works: the account's own name, real read-only system values, and an explicit "Not configurable yet" list naming what's missing and why (store settings need Checkout, password change needs email, role management needs Super Admin). A settings screen full of controls that save nowhere would be the same problem as a dashboard full of invented numbers
 
 ---
 
@@ -848,7 +865,7 @@ Rather than only focusing on building features, I aim to understand the reasonin
 
 🟢 Customer Store (Listing, Filters, Product Detail, Cart, Wishlist, Home/About/Contact/Account)
 
-🟢 Automated Testing (130 Jest/Supertest tests)
+🟢 Automated Testing (141 Jest/Supertest tests)
 
 🟢 Pre-Deployment Security Audit
 
