@@ -3,12 +3,18 @@ import mongoose from "mongoose";
 import app from "../src/app.js";
 import Product from "../src/models/product.model.js";
 import ProductVariant from "../src/models/productVariant.model.js";
+import Review from "../src/models/review.model.js";
+import User from "../src/models/user.model.js";
 import Category from "../src/models/category.model.js";
 import Brand from "../src/models/brand.model.js";
 import Material from "../src/models/material.model.js";
 import Color from "../src/models/color.model.js";
 import { connectTestDB, clearTestDB, disconnectTestDB } from "./setup/testDb.js";
-import { createMasterData } from "./fixtures/masterData.js";
+import {
+  createMasterData,
+  createTestProduct,
+  createTestVariant,
+} from "./fixtures/masterData.js";
 import { createAdminAgent, createCustomerAgent } from "./fixtures/auth.js";
 
 beforeAll(async () => {
@@ -108,6 +114,29 @@ describe("GET /api/products/:productId", () => {
 });
 
 describe("DELETE /api/products/:productId", () => {
+  /**
+   * Reviews carry a compound unique index on { product, user }, so each
+   * review on the same product needs its own account. Created directly
+   * rather than through the API because these tests are about the delete
+   * cascade, not about the review write path (that's review.test.js).
+   */
+  const addReviews = async (product, count) => {
+    for (let i = 0; i < count; i++) {
+      const user = await User.create({
+        name: `Reviewer ${i}`,
+        email: `reviewer${i}@test.com`,
+        password: "testpassword123",
+        role: "customer",
+      });
+      await Review.create({
+        product: product._id,
+        user: user._id,
+        rating: 5,
+        comment: "Solid build, arrived well packed.",
+      });
+    }
+  };
+
   it("blocks deleting a product that still has variants, unless confirmCascade=true", async () => {
     const adminAgent = await createAdminAgent();
     const { category, brand, roomType, material, color } = await createMasterData();
@@ -135,6 +164,77 @@ describe("DELETE /api/products/:productId", () => {
     expect(withConfirm.status).toBe(200);
     expect(await Product.findById(product._id)).toBeNull();
     expect(await ProductVariant.countDocuments({ product: product._id })).toBe(0);
+  });
+
+  // ADR-057 — the four tests below. Reviews were previously left behind by
+  // deleteProduct, and the confirmation gate only ever counted variants, so
+  // a product with reviews and no variants was deleted with no warning.
+  it("deletes the product's reviews along with it (ADR-057)", async () => {
+    const adminAgent = await createAdminAgent();
+    const masterData = await createMasterData();
+    const product = await createTestProduct(masterData);
+    await addReviews(product, 2);
+
+    const res = await adminAgent.delete(
+      `/api/products/${product._id}?confirmCascade=true`,
+    );
+
+    expect(res.status).toBe(200);
+    expect(await Product.findById(product._id)).toBeNull();
+    expect(await Review.countDocuments({ product: product._id })).toBe(0);
+  });
+
+  it("blocks deleting a product that has reviews but no variants", async () => {
+    const adminAgent = await createAdminAgent();
+    const masterData = await createMasterData();
+    const product = await createTestProduct(masterData);
+    await addReviews(product, 3);
+
+    const res = await adminAgent.delete(`/api/products/${product._id}`);
+
+    expect(res.status).toBe(409);
+    expect(res.body.success).toBe(false);
+    // Nothing is removed while the gate is refusing — not the product,
+    // and not the reviews the admin hasn't agreed to lose yet.
+    expect(await Product.findById(product._id)).not.toBeNull();
+    expect(await Review.countDocuments({ product: product._id })).toBe(3);
+  });
+
+  it("reports both variantCount and reviewCount in the 409 body", async () => {
+    const adminAgent = await createAdminAgent();
+    const masterData = await createMasterData();
+    const { material, color } = masterData;
+    const product = await createTestProduct(masterData);
+    await createTestVariant(product, { material, color });
+    await addReviews(product, 2);
+
+    const res = await adminAgent.delete(`/api/products/${product._id}`);
+
+    expect(res.status).toBe(409);
+    expect(res.body.variantCount).toBe(1);
+    expect(res.body.reviewCount).toBe(2);
+    // The client renders this string directly rather than rebuilding it,
+    // so both counts have to be in it.
+    expect(res.body.message).toContain("1 variant");
+    expect(res.body.message).toContain("2 reviews");
+  });
+
+  it("deletes product, variants and reviews together with confirmCascade=true", async () => {
+    const adminAgent = await createAdminAgent();
+    const masterData = await createMasterData();
+    const { material, color } = masterData;
+    const product = await createTestProduct(masterData);
+    await createTestVariant(product, { material, color });
+    await addReviews(product, 2);
+
+    const res = await adminAgent.delete(
+      `/api/products/${product._id}?confirmCascade=true`,
+    );
+
+    expect(res.status).toBe(200);
+    expect(await Product.findById(product._id)).toBeNull();
+    expect(await ProductVariant.countDocuments({ product: product._id })).toBe(0);
+    expect(await Review.countDocuments({ product: product._id })).toBe(0);
   });
 
   it("returns 404 when deleting a product that doesn't exist", async () => {
