@@ -13,7 +13,13 @@ export function buildQueryFeatures(query, options = {} ) {
 //     1. filter
     const filter = {};
 
-    if (search){
+    // typeof check, not just truthiness: a repeated query param
+    // (?search=a&search=b) arrives as an ARRAY of strings, and Mongo can't
+    // cast an array at $text.$search — that threw a CastError which the
+    // errorHandler turned into a 500, on every list route, for any
+    // unauthenticated caller (ADR-058). A non-string value now means
+    // "no search" rather than a crash.
+    if (typeof search === "string" && search) {
         filter.$text = { $search: search };
     }
 
