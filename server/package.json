@@ -13,7 +13,8 @@
     "seed:images": "node src/scripts/seedProductImages.js",
     "seed:master-images": "node src/scripts/seedMasterDataImages.js",
     "seed:catalog": "node src/scripts/seedCatalog.js",
-    "backfill:catalog-details": "node src/scripts/backfillCatalogDetails.js"
+    "backfill:catalog-details": "node src/scripts/backfillCatalogDetails.js",
+    "seed:reviews": "node src/scripts/seedReviews.js"
   },
   "keywords": [],
   "author": "",
