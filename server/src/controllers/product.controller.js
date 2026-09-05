@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Product from "../models/product.model.js";
 import ProductVariant from "../models/productVariant.model.js";
+import Review from "../models/review.model.js";
 import Category from "../models/category.model.js";
 import Brand from "../models/brand.model.js";
 import RoomType from "../models/roomType.model.js";
@@ -8,6 +9,7 @@ import Material from "../models/material.model.js";
 import Color from "../models/color.model.js";
 import AppError from "../utils/AppError.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
+import { getReviewSummary } from "./review.controller.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
 
 const isValidObjectId = (value) =>
@@ -181,24 +183,44 @@ export const getProducts = async (req, res) => {
   // single ProductVariant query keeps that guarantee: always exactly one
   // extra query, regardless of page size.
   const productIds = products.map((p) => p._id);
-  const priceRows = await ProductVariant.aggregate([
-    { $match: { product: { $in: productIds }, isActive: true } },
-    {
-      $group: {
-        _id: "$product",
-        minPrice: { $min: "$price" },
-        maxCompareAtPrice: { $max: "$compareAtPrice" },
+  const [priceRows, ratingRows] = await Promise.all([
+    ProductVariant.aggregate([
+      { $match: { product: { $in: productIds }, isActive: true } },
+      {
+        $group: {
+          _id: "$product",
+          minPrice: { $min: "$price" },
+          maxCompareAtPrice: { $max: "$compareAtPrice" },
+        },
       },
-    },
+    ]),
+    // Same one-query-per-page rule as pricing above: ratings are computed
+    // from the Review collection rather than stored on Product, so they
+    // can never drift out of sync with the reviews people actually wrote.
+    Review.aggregate([
+      { $match: { product: { $in: productIds } } },
+      {
+        $group: {
+          _id: "$product",
+          averageRating: { $avg: "$rating" },
+          reviewCount: { $sum: 1 },
+        },
+      },
+    ]),
   ]);
+
   const priceByProduct = new Map(priceRows.map((r) => [String(r._id), r]));
+  const ratingByProduct = new Map(ratingRows.map((r) => [String(r._id), r]));
 
   const productsWithPricing = products.map((product) => {
     const pricing = priceByProduct.get(String(product._id));
+    const rating = ratingByProduct.get(String(product._id));
     return {
       ...product.toObject(),
       fromPrice: pricing?.minPrice ?? null,
       compareAtPrice: pricing?.maxCompareAtPrice ?? null,
+      averageRating: rating ? Number(rating.averageRating.toFixed(2)) : null,
+      reviewCount: rating?.reviewCount ?? 0,
     };
   });
 
@@ -341,9 +363,18 @@ export const getProductById = async (req, res) => {
     throw new AppError("Product not found.", 404);
   }
 
+  // Attached here rather than fetched separately by the product page, so
+  // the star rating renders with the rest of the product instead of
+  // popping in after a second request.
+  const summary = await getReviewSummary(productId);
+
   return res.status(200).json({
     success: true,
-    data: product,
+    data: {
+      ...product.toObject(),
+      averageRating: summary.averageRating,
+      reviewCount: summary.reviewCount,
+    },
   });
 };
 
