@@ -176,12 +176,12 @@ export const getProducts = async (req, res) => {
     Product.countDocuments(filter),
   ]);
 
-  // One aggregation for the whole page, not one query per product — a
+  // Two aggregations for the whole page, not one query per product — a
   // listing card needs a "from ₹X" price and a real discount badge, but
   // ADR-039 deliberately left price off the card originally specifically
-  // to avoid an N+1 fetch. Grouping across the page's product ids in a
-  // single ProductVariant query keeps that guarantee: always exactly one
-  // extra query, regardless of page size.
+  // to avoid an N+1 fetch. Grouping across the page's product ids keeps
+  // that guarantee: always exactly two extra queries (one for pricing,
+  // one for ratings, run in parallel), regardless of page size (ADR-052).
   const productIds = products.map((p) => p._id);
   const [priceRows, ratingRows] = await Promise.all([
     ProductVariant.aggregate([

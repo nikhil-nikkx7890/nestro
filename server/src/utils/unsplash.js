@@ -10,7 +10,7 @@ const UNSPLASH_SEARCH_URL = "https://api.unsplash.com/search/photos";
  *
  * @param {string} query
  * @param {number} count
- * @returns {Promise<{ rawUrl: string, downloadLocation: string }[]>}
+ * @returns {Promise<{ rawUrl: string }[]>}
  */
 export const searchUnsplashPhotos = async (query, count = 12) => {
   const accessKey = process.env.UNSPLASH_ACCESS_KEY;

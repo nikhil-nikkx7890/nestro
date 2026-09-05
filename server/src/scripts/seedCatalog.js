@@ -29,9 +29,16 @@ import ProductVariant from "../models/productVariant.model.js";
  * reused across every Product in that Category. This keeps Cloudinary
  * usage to ~300 one-time uploads total instead of one per Product.
  *
- * Destructive by design (same convention as seed.js): clears existing
- * Products and Variants before inserting, since this is demo catalog data,
- * not real customer-facing inventory. Master Data is untouched.
+ * Resumable by default (ADR-051): a Category that already has Products is
+ * skipped, so an interrupted run continues where it stopped rather than
+ * duplicating work — the first real run died partway through on Unsplash's
+ * hourly rate limit. Pass `--fresh` to clear ALL Products and Variants
+ * first and rebuild from scratch. Master Data is untouched either way.
+ *
+ * Resume granularity is a whole Category, not a Product. An interruption
+ * partway through a Category's six Products would duplicate them on re-run.
+ * In practice the failure lands in buildCategoryImagePool, before any
+ * Product is created, so this hasn't bitten yet.
  */
 
 // Category name -> { singular label used in generated product names, Unsplash search query }
