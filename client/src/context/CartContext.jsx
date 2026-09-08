@@ -35,7 +35,12 @@ export function CartProvider({ children }) {
     }
   }, [isCustomer]);
 
+  // Category A (ADR-059): the provider has to pull the cart once it knows
+  // who the caller is, and `refetch` stores what comes back. Loading server
+  // state on mount is an effect that sets state by definition — there is no
+  // rule-clean version of this without a data-fetching library.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refetch();
   }, [refetch]);
 

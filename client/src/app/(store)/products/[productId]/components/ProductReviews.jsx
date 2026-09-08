@@ -70,7 +70,12 @@ export default function ProductReviews({ productId, onSummaryChange }) {
     }
   }, [productId]);
 
+  // Category A (ADR-059): reviews and their rating summary come from the
+  // API when the product id changes, and `load` sets both. A fetch keyed on
+  // a prop is the one thing effects are genuinely for; the state write is
+  // the fetch's result, not state being mirrored from other state.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
 

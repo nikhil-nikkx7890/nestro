@@ -31,7 +31,12 @@ export function WishlistProvider({ children }) {
     }
   }, [isCustomer]);
 
+  // Category A (ADR-059): same shape as CartContext — the wishlist is
+  // server state that has to be fetched before it can be rendered, and
+  // `refetch` writes the result into React state. Nothing to restructure
+  // here short of moving fetching out of effects entirely.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     refetch();
   }, [refetch]);
 

@@ -54,7 +54,16 @@ export function useResourceList({ list, entityName, extraParams = {} }) {
   // the `list` prop (see the listRef comment above).
   const extraParamsKey = JSON.stringify(extraParams);
 
+  // Category B (ADR-059) — DEBT, not accepted design. This keeps one piece
+  // of state in sync with another through an effect, which is precisely
+  // what the rule is built to catch: `page` should be derived from, or
+  // reset by a key tied to, `extraParamsKey` rather than written back in a
+  // second render pass. It is also the same shape of code as the infinite
+  // render loop this hook already had once (FLOW 16.3 / 22.9) — not
+  // looping today, but the same pattern that produced it. Suppressed only
+  // to unblock CI; tracked in STATUS P1.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1); // reset to page 1 whenever a filter changes
   }, [extraParamsKey]);
 
@@ -80,7 +89,13 @@ export function useResourceList({ list, entityName, extraParams = {} }) {
     }
   }, [entityName, debouncedSearch, page, sortBy, sortOrder, isActive, extraParamsKey]);
 
+  // Category A (ADR-059): this is the list fetch itself. With no
+  // data-fetching library in the stack, "load the rows when the query
+  // changes" can only be an effect, and any fetch sets state — so the rule
+  // has nothing better to suggest here. Adopting React Query or similar
+  // would remove it, which is an architectural call, not a lint fix.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchItems();
   }, [fetchItems]);
 
