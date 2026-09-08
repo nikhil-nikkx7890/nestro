@@ -179,16 +179,16 @@ export default function AdminSettingsPage() {
         <ul className="space-y-2 text-sm text-neutral-600">
           <li>
             <span className="font-medium">Store details, currency, tax and shipping</span>{" "}
-            — nothing consumes these until Checkout exists, so there's no
+            — nothing consumes these until Checkout exists, so there’s no
             settings store to write them to.
           </li>
           <li>
             <span className="font-medium">Password change and reset</span> — needs email
-            infrastructure, which the project doesn't have yet.
+            infrastructure, which the project doesn’t have yet.
           </li>
           <li>
             <span className="font-medium">Role management</span> — promoting an account to
-            admin is Super Admin territory, deliberately deferred until there's a
+            admin is Super Admin territory, deliberately deferred until there’s a
             real second-admin scenario.
           </li>
         </ul>

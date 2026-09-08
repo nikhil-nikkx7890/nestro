@@ -59,7 +59,7 @@ export default function AdminReviewsPage() {
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Reviews</h1>
 
         <p className="mt-2 text-neutral-500">
-          Read and moderate customer reviews. Reviews can't be written or
+          Read and moderate customer reviews. Reviews can’t be written or
           edited from here — only removed.
         </p>
       </div>

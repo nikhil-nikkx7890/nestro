@@ -55,7 +55,7 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Dashboard</h1>
 
         <p className="mt-2 text-neutral-500">
-          An overview of what's currently in the catalog.
+          An overview of what’s currently in the catalog.
         </p>
       </div>
 
@@ -100,7 +100,7 @@ export default function DashboardPage() {
             <p className="mt-4 font-medium">No orders yet</p>
             <p className="mt-1 max-w-sm text-sm text-neutral-500">
               Checkout and orders are part of the Commerce phase, which
-              isn't built yet — so there's nothing real to show here.
+              isn’t built yet — so there’s nothing real to show here.
             </p>
           </div>
         </section>

@@ -103,7 +103,7 @@ export default function ProductVariantsPage() {
       {isFirstVariant && variants.length === 0 && !loading && (
         <div className="rounded-2xl border border-neutral-900 bg-neutral-50 p-6">
           <p className="font-medium text-neutral-900">
-            Your product needs at least one variant before it's sell-ready.
+            Your product needs at least one variant before it’s sell-ready.
           </p>
           <p className="mt-1 text-sm text-neutral-600">
             A variant holds the actual price, stock, material, and color —

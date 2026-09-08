@@ -188,7 +188,7 @@ export default function ProductReviews({ productId, onSummaryChange }) {
               </>
             ) : (
               <p className="text-[#78716C]">
-                No reviews yet. If you've bought this, you'd be the first.
+                No reviews yet. If you’ve bought this, you’d be the first.
               </p>
             )}
 
@@ -197,7 +197,7 @@ export default function ProductReviews({ productId, onSummaryChange }) {
                 note rather than a form that would 403 on submit. */}
             {user?.role === "admin" && (
               <p className="mt-10 rounded-lg border border-[#E7E5E4] bg-white/60 px-4 py-3 text-sm text-[#78716C]">
-                Admin accounts can't post reviews — you can remove any
+                Admin accounts can’t post reviews — you can remove any
                 review from the list.
               </p>
             )}
