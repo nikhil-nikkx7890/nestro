@@ -11,6 +11,8 @@ import { useRequireCustomer } from "@/hooks/useRequireCustomer";
 import { useAuth } from "@/context/AuthContext";
 import { authService } from "@/services/auth.service";
 import { addressService } from "@/services/address.service";
+import { orderService } from "@/services/order.service";
+import { formatPaise } from "@/utils/formatters";
 import { profileSchema } from "./schemas/profile.schema";
 
 export default function AccountPage() {
@@ -47,6 +49,28 @@ export default function AccountPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchAddresses();
   }, [ready, fetchAddresses]);
+
+  // Same summary-card shape as Addresses above — replaces the previous
+  // honest "no orders yet" placeholder now that Orders (ADR-066) exists
+  // to actually have real data. The full history lives on its own page
+  // (/account/orders), same as Addresses.
+  const [orders, setOrders] = useState(null);
+
+  const fetchOrders = useCallback(async () => {
+    try {
+      const res = await orderService.list();
+      setOrders(res.data);
+    } catch (error) {
+      // Silent, same reasoning as fetchAddresses above — a summary card,
+      // not the page's primary content.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!ready) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchOrders();
+  }, [ready, fetchOrders]);
 
   const {
     register,
@@ -199,10 +223,38 @@ export default function AccountPage() {
       </div>
 
       <div className="mt-10 rounded-2xl border border-[#E7E5E4] p-6">
-        <h2 className="font-heading text-xl text-[#1C1917]">Order History</h2>
-        <p className="mt-3 text-sm text-[#78716C]">
-          You haven&apos;t placed any orders yet.
-        </p>
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading text-xl text-[#1C1917]">Order History</h2>
+          {orders && orders.length > 0 && (
+            <Link
+              href="/account/orders"
+              className="text-sm font-medium text-[#8B5E3C] hover:underline"
+            >
+              View All Orders
+            </Link>
+          )}
+        </div>
+
+        {orders === null ? (
+          <p className="mt-3 text-sm text-[#78716C]">Loading...</p>
+        ) : orders.length === 0 ? (
+          <>
+            <p className="mt-3 text-sm text-[#78716C]">
+              You haven&apos;t placed any orders yet.
+            </p>
+            <Link
+              href="/products"
+              className="mt-3 inline-block text-sm font-medium text-[#8B5E3C] hover:underline"
+            >
+              Start shopping
+            </Link>
+          </>
+        ) : (
+          <p className="mt-3 text-sm text-[#44403C]">
+            {orders.length} {orders.length === 1 ? "order" : "orders"} — most recent:{" "}
+            {formatPaise(orders[0].total)} ({orders[0].status})
+          </p>
+        )}
       </div>
     </div>
   );

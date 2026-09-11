@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Minus, Plus, X } from "lucide-react";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ import { toTitleCase, formatPaise } from "@/utils/formatters";
 
 export default function CartPage() {
   const { ready } = useRequireCustomer();
+  const router = useRouter();
   const { cart, updateItem, removeItem } = useCart();
   const [pendingVariantId, setPendingVariantId] = useState(null);
 
@@ -152,9 +154,13 @@ export default function CartPage() {
                 {formatPaise(cart.subtotal)}
               </span>
             </div>
-            <p className="mt-4 text-xs text-[#78716C]">
-              Checkout isn&apos;t available yet — this is a preview of your cart.
-            </p>
+            <button
+              type="button"
+              onClick={() => router.push("/checkout")}
+              className="mt-6 w-full rounded-lg bg-[#8B5E3C] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#6E4A2F]"
+            >
+              Proceed to Checkout
+            </button>
           </div>
         </div>
       )}

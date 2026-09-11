@@ -12,6 +12,7 @@ import {
     Palette,
     Package,
     Star,
+    ShoppingCart,
     Users,
     Settings,
 } from "lucide-react";
@@ -62,9 +63,19 @@ const menuItems = [
             },
         ],
     },
-    // SALES / Orders is deliberately absent until the Commerce phase
-    // builds it — a nav item that 404s is worse than one that isn't there
-    // yet, the same reasoning applied to the storefront footer's links.
+    // SALES / Orders — back after ADR-056 removed it (real orders didn't
+    // exist yet, and a nav item that 404s is worse than one that isn't
+    // there); Commerce Part 2 (ADR-066) is what it was waiting on.
+    {
+        section: "SALES",
+        items: [
+            {
+                name: "Orders",
+                href: "/admin/orders",
+                icon: ShoppingCart,
+            },
+        ],
+    },
     {
         section: "SYSTEM",
         items: [
