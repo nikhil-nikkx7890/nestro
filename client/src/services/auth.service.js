@@ -58,4 +58,15 @@ export const authService = {
     const response = await api.post("/auth/resend-verification-email");
     return response.data;
   },
+
+  // Passwordless OTP login, 2-step flow (ADR-064).
+  requestOtpLogin: async (data) => {
+    const response = await api.post("/auth/otp-login/request", data);
+    return response.data;
+  },
+
+  verifyOtpLogin: async (data) => {
+    const response = await api.post("/auth/otp-login/verify", data);
+    return response.data;
+  },
 };

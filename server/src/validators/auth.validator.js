@@ -56,3 +56,21 @@ export const resetPasswordSchema = z
     newPassword: z.string().min(8, "Password must be at least 8 characters."),
   })
   .strict();
+
+// Passwordless OTP login, 2-step flow (ADR-064).
+
+export const otpLoginRequestSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+  })
+  .strict();
+
+export const otpLoginVerifySchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+    otp: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/, "Enter the 6-digit code from your email."),
+  })
+  .strict();

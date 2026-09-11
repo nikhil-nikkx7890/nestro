@@ -561,3 +561,174 @@ describe("POST /api/auth/resend-verification-email", () => {
     expect(res.body.message).toBe("This email is already verified.");
   });
 });
+
+describe("POST /api/auth/otp-login/request", () => {
+  it("generates and stores a hashed OTP for a registered email, with a generic response", async () => {
+    await request(app).post("/api/auth/register").send(testUser);
+
+    const res = await request(app)
+      .post("/api/auth/otp-login/request")
+      .send({ email: testUser.email });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    const inDb = await User.findOne({ email: testUser.email }).select(
+      "+otpLoginHash +otpLoginExpires",
+    );
+    expect(inDb.otpLoginHash).toBeTruthy();
+    expect(inDb.otpLoginHash).not.toMatch(/^\d{6}$/); // stored hashed, not the raw code
+    expect(inDb.otpLoginExpires.getTime()).toBeGreaterThan(Date.now());
+  });
+
+  // ADR-064: existing accounts only — this must never create one, and the
+  // response must not reveal that no account was actually reached.
+  it("responds identically for an unregistered email, and creates no account", async () => {
+    const registered = await request(app)
+      .post("/api/auth/otp-login/request")
+      .send({ email: testUser.email }); // not registered — no account exists yet
+
+    const unregistered = await request(app)
+      .post("/api/auth/otp-login/request")
+      .send({ email: "nobody@example.com" });
+
+    expect(unregistered.status).toBe(registered.status);
+    expect(unregistered.body).toEqual(registered.body);
+
+    const count = await User.countDocuments({ email: "nobody@example.com" });
+    expect(count).toBe(0);
+  });
+
+  it("rejects a malformed email", async () => {
+    const res = await request(app)
+      .post("/api/auth/otp-login/request")
+      .send({ email: "not-an-email" });
+
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /api/auth/otp-login/verify", () => {
+  // Same "seed the field the controller itself writes" approach as
+  // verify-reset-otp's own tests — the real OTP only ever exists inside
+  // an unobservable email send.
+  const seedOtpLogin = async (email, otp, { expired = false } = {}) => {
+    const user = await User.findOne({ email });
+    user.otpLoginHash = hashOTP(otp);
+    user.otpLoginExpires = new Date(Date.now() + (expired ? -1000 : 5 * 60 * 1000));
+    await user.save({ validateBeforeSave: false });
+  };
+
+  it("logs in directly on a correct, unexpired OTP — no intermediate token", async () => {
+    await request(app).post("/api/auth/register").send(testUser);
+    await seedOtpLogin(testUser.email, "123456");
+
+    const res = await request(app)
+      .post("/api/auth/otp-login/verify")
+      .send({ email: testUser.email, otp: "123456" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data.email).toBe(testUser.email);
+    expect(res.headers["set-cookie"]).toBeDefined(); // session cookie, set directly
+
+    // Single-use — the same OTP can't be verified again.
+    const inDb = await User.findOne({ email: testUser.email }).select(
+      "+otpLoginHash +otpLoginExpires",
+    );
+    expect(inDb.otpLoginHash).toBeFalsy();
+
+    const replay = await request(app)
+      .post("/api/auth/otp-login/verify")
+      .send({ email: testUser.email, otp: "123456" });
+    expect(replay.status).toBe(400);
+  });
+
+  it("rejects an incorrect OTP with a generic message", async () => {
+    await request(app).post("/api/auth/register").send(testUser);
+    await seedOtpLogin(testUser.email, "123456");
+
+    const res = await request(app)
+      .post("/api/auth/otp-login/verify")
+      .send({ email: testUser.email, otp: "999999" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Invalid or expired code.");
+  });
+
+  it("rejects an expired OTP with the same generic message", async () => {
+    await request(app).post("/api/auth/register").send(testUser);
+    await seedOtpLogin(testUser.email, "123456", { expired: true });
+
+    const res = await request(app)
+      .post("/api/auth/otp-login/verify")
+      .send({ email: testUser.email, otp: "123456" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Invalid or expired code.");
+  });
+
+  // Same generic message as a wrong/expired OTP — distinguishing "no
+  // account" from "wrong code" would itself be an enumeration oracle.
+  it("rejects an email with no pending request using the same generic message", async () => {
+    const res = await request(app)
+      .post("/api/auth/otp-login/verify")
+      .send({ email: "nobody@example.com", otp: "123456" });
+
+    expect(res.status).toBe(400);
+    expect(res.body.message).toBe("Invalid or expired code.");
+  });
+
+  it("rejects a malformed OTP before ever touching the database", async () => {
+    const res = await request(app)
+      .post("/api/auth/otp-login/verify")
+      .send({ email: testUser.email, otp: "12a456" });
+
+    expect(res.status).toBe(400);
+  });
+
+  // Deactivation must block every login path, this one included — and
+  // the OTP isn't burned by a blocked attempt, so it's still usable
+  // within its window if the account is reactivated (controller comment).
+  it("rejects a deactivated account without consuming the OTP", async () => {
+    await request(app).post("/api/auth/register").send(testUser);
+    await seedOtpLogin(testUser.email, "123456");
+    await User.updateOne({ email: testUser.email }, { isActive: false });
+
+    const res = await request(app)
+      .post("/api/auth/otp-login/verify")
+      .send({ email: testUser.email, otp: "123456" });
+
+    expect(res.status).toBe(403);
+    expect(res.headers["set-cookie"]).toBeUndefined();
+
+    const inDb = await User.findOne({ email: testUser.email }).select("+otpLoginHash");
+    expect(inDb.otpLoginHash).toBeTruthy(); // still there, not consumed
+  });
+
+  // Regression for exactly the cross-purpose confusion the separate
+  // otpLoginHash/passwordResetOTPHash fields exist to prevent (ADR-064,
+  // same lesson ADR-063 applied to the JWT purpose claim) — a valid
+  // password-reset code must not double as a login code.
+  it("rejects a valid password-reset OTP presented as a login OTP", async () => {
+    await request(app).post("/api/auth/register").send(testUser);
+    await request(app)
+      .post("/api/auth/forgot-password")
+      .send({ email: testUser.email });
+
+    const user = await User.findOne({ email: testUser.email }).select(
+      "+passwordResetOTPHash",
+    );
+    // The raw reset OTP is never exposed by the API — reach into the
+    // model directly to get a real code that hashes to the stored value,
+    // the same way seedOtpLogin above writes one for its own tests.
+    const rawResetOtp = "654321";
+    user.passwordResetOTPHash = hashOTP(rawResetOtp);
+    await user.save({ validateBeforeSave: false });
+
+    const res = await request(app)
+      .post("/api/auth/otp-login/verify")
+      .send({ email: testUser.email, otp: rawResetOtp });
+
+    expect(res.status).toBe(400);
+  });
+});

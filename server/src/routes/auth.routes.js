@@ -11,6 +11,8 @@ import {
   resetPassword,
   verifyEmail,
   resendVerificationEmail,
+  requestOtpLogin,
+  verifyOtpLogin,
 } from "../controllers/auth.controller.js";
 import { authenticate } from "../middlewares/authenticate.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
@@ -21,6 +23,8 @@ import {
   forgotPasswordSchema,
   verifyResetOtpSchema,
   resetPasswordSchema,
+  otpLoginRequestSchema,
+  otpLoginVerifySchema,
 } from "../validators/auth.validator.js";
 
 const router = express.Router();
@@ -78,5 +82,22 @@ router.post(
 // behind it for.
 router.get("/verify-email/:token", verifyEmail);
 router.post("/resend-verification-email", authenticate, authLimiter, resendVerificationEmail);
+
+// Passwordless OTP login (ADR-064). Both share authLimiter for the same
+// reason as the password-reset trio above — verify in particular is the
+// higher-value target of the two (a successful guess is a live session,
+// not just a password-set chance), so it leans on the same 20/15min cap.
+router.post(
+  "/otp-login/request",
+  authLimiter,
+  validateRequest(otpLoginRequestSchema),
+  requestOtpLogin,
+);
+router.post(
+  "/otp-login/verify",
+  authLimiter,
+  validateRequest(otpLoginVerifySchema),
+  verifyOtpLogin,
+);
 
 export default router;

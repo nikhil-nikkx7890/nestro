@@ -62,9 +62,29 @@ export function AuthProvider({ children }) {
     return res.data;
   };
 
+  // Step 2 of passwordless OTP login (ADR-064) — mirrors login() exactly,
+  // since verifying the OTP *is* the login here, no intermediate step.
+  // Step 1 (requesting the code) doesn't touch user state, so the login
+  // page calls authService.requestOtpLogin directly instead of going
+  // through context, the same way forgot-password's page does.
+  const loginWithOtp = async (data) => {
+    const res = await authService.verifyOtpLogin(data);
+    setUser(res.data);
+    return res.data;
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, updateProfile, resetPassword }}
+      value={{
+        user,
+        loading,
+        login,
+        register,
+        logout,
+        updateProfile,
+        resetPassword,
+        loginWithOtp,
+      }}
     >
       {children}
     </AuthContext.Provider>

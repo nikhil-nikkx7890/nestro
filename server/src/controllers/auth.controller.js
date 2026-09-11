@@ -16,6 +16,7 @@ import {
   verificationEmail,
   accountAlreadyExistsEmail,
   passwordResetOTPEmail,
+  otpLoginEmail,
 } from "../utils/emailTemplates.js";
 
 // ADR-063's link points at a frontend page (/verify-email/:token), which
@@ -25,7 +26,16 @@ import {
 // API and expecting a JSON response to double as a landing page.
 const buildVerifyEmailUrl = (token) => `${process.env.CLIENT_URL}/verify-email/${token}`;
 
-const OTP_EXPIRY_MS = 15 * 60 * 1000;
+// Renamed from the old, unqualified OTP_EXPIRY_MS now that a second OTP
+// flow exists with a deliberately different window (ADR-064) — an
+// unqualified name would leave which "the OTP" it means ambiguous at the
+// call site.
+const PASSWORD_RESET_OTP_EXPIRY_MS = 15 * 60 * 1000;
+
+// Tighter than password reset's 15 minutes (ADR-064's Reason): a
+// successful guess here hands over a live session outright, not just a
+// chance to set a new password, so the brute-force window is narrower.
+const OTP_LOGIN_EXPIRY_MS = 5 * 60 * 1000;
 
 /**
  * A real bcrypt hash of a value nothing can log in with, compared against
@@ -232,7 +242,7 @@ export const forgotPassword = async (req, res) => {
   if (user) {
     const otp = generateOTP();
     user.passwordResetOTPHash = hashOTP(otp);
-    user.passwordResetOTPExpires = new Date(Date.now() + OTP_EXPIRY_MS);
+    user.passwordResetOTPExpires = new Date(Date.now() + PASSWORD_RESET_OTP_EXPIRY_MS);
     await user.save({ validateBeforeSave: false });
 
     sendEmail({ to: user.email, ...passwordResetOTPEmail(otp) }).catch((err) =>
@@ -407,5 +417,102 @@ export const resendVerificationEmail = async (req, res) => {
   return res.status(200).json({
     success: true,
     message: "Verification email sent.",
+  });
+};
+
+// --- Passwordless OTP login, 2-step (ADR-064) ---
+//
+// Unlike password reset's 3-step split, verifying the OTP here *is* the
+// login — there's no separate action left to gate behind an intermediate
+// token, so a third step would add friction without adding security
+// (ADR-064's Reason). Both endpoints share authLimiter with the rest of
+// the auth-emailing routes (see auth.routes.js); verify in particular
+// leans on it the same way verify-reset-otp does — 20 attempts/15min
+// against a 6-digit code, now inside a tighter 5-minute expiry.
+
+/**
+ * Step 1. Existing accounts only (ADR-064) — this never creates a User,
+ * only ever looks one up. Generic response regardless of whether the
+ * email matches, the same enumeration-resistant shape as forgotPassword
+ * (ADR-062) and register (ADR-058/062): nothing here can be used to test
+ * which emails have a Nestro account.
+ *
+ * No equivalent-cost filler work on the not-found branch, same accepted-
+ * gap reasoning as forgotPassword's own comment — sha256 hashing is fast
+ * either way, so the real (small, noisy) timing signal is the one extra
+ * Mongo write the matched branch performs.
+ */
+export const requestOtpLogin = async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (user) {
+    const otp = generateOTP();
+    user.otpLoginHash = hashOTP(otp);
+    user.otpLoginExpires = new Date(Date.now() + OTP_LOGIN_EXPIRY_MS);
+    await user.save({ validateBeforeSave: false });
+
+    sendEmail({ to: user.email, ...otpLoginEmail(otp) }).catch((err) =>
+      console.error("Failed to send OTP login email:", err),
+    );
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "If an account exists for this email, a sign-in code has been sent.",
+  });
+};
+
+/**
+ * Step 2. One generic failure message covers a wrong code, an expired
+ * one, and an email with no pending request alike — same reasoning as
+ * verifyResetOtp: distinguishing any of those would let a caller learn
+ * which emails have an account without ever having read the real code
+ * from that inbox.
+ *
+ * The isActive check runs *after* confirming the OTP is genuinely valid,
+ * matching login()'s own ordering (identity proof, then account-status
+ * check) — and deliberately before clearing the OTP, so a deactivated
+ * account's blocked attempt doesn't burn the one-time code; it's still
+ * usable within its window if the account is reactivated.
+ */
+export const verifyOtpLogin = async (req, res) => {
+  const { email, otp } = req.body;
+
+  const user = await User.findOne({ email }).select("+otpLoginHash +otpLoginExpires");
+
+  const otpIsValid =
+    user &&
+    user.otpLoginHash &&
+    user.otpLoginExpires &&
+    user.otpLoginExpires.getTime() > Date.now() &&
+    compareOTP(otp, user.otpLoginHash);
+
+  if (!otpIsValid) {
+    throw new AppError("Invalid or expired code.", 400);
+  }
+
+  if (!user.isActive) {
+    throw new AppError("This account has been deactivated.", 403);
+  }
+
+  user.otpLoginHash = undefined;
+  user.otpLoginExpires = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  const token = generateToken(user._id);
+  res.cookie("token", token, authCookieOptions);
+
+  return res.status(200).json({
+    success: true,
+    message: "Logged in successfully",
+    data: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      isEmailVerified: user.isEmailVerified,
+    },
   });
 };

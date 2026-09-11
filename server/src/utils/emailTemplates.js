@@ -96,3 +96,25 @@ export const passwordResetOTPEmail = (otp) => ({
     </p>
   `),
 });
+
+/**
+ * Passwordless login (ADR-064). Same visual shape as passwordResetOTPEmail
+ * above, but the copy is deliberately more pointed about what the code
+ * actually grants — entering it logs someone in immediately, with no
+ * further step, so "if you didn't request this" carries more weight here
+ * than it does on the reset email.
+ */
+export const otpLoginEmail = (otp) => ({
+  subject: "Your Nestro sign-in code",
+  html: wrapper(`
+    <p style="margin: 0 0 16px; font-size: 15px; color: #44403c; line-height: 1.6;">
+      Use this code to sign in to Nestro. It expires in 5 minutes.
+    </p>
+    <p style="margin: 0 0 16px; font-size: 32px; font-weight: 700; letter-spacing: 0.15em; color: #1c1917; text-align: center; padding: 16px; background-color: #f5f5f4; border-radius: 8px;">
+      ${otp}
+    </p>
+    <p style="margin: 0; font-size: 14px; color: #78716c; line-height: 1.6;">
+      Didn't request this? Someone may have your email address — you can ignore this message, but consider changing your password if it keeps happening.
+    </p>
+  `),
+});

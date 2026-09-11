@@ -68,6 +68,24 @@ const userSchema = new mongoose.Schema(
       type: Date,
       select: false,
     },
+
+    // Passwordless OTP login (ADR-064). Deliberately separate fields
+    // from passwordResetOTPHash/Expires above rather than reusing them —
+    // sharing one hash across two purposes would recreate, at the field
+    // level, exactly the cross-purpose confusion ADR-063 found and fixed
+    // at the JWT level (a token/code proving one thing being accepted
+    // for another): a leftover valid password-reset code could otherwise
+    // log someone in outright, a stronger action than what that code was
+    // ever meant to authorize. Same select: false and same single-use
+    // clearing-on-verify as the reset fields.
+    otpLoginHash: {
+      type: String,
+      select: false,
+    },
+    otpLoginExpires: {
+      type: Date,
+      select: false,
+    },
   },
   {
     timestamps: true,
