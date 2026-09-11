@@ -1,8 +1,10 @@
+import mongoose from "mongoose";
 import request from "supertest";
 import app from "../src/app.js";
 import Review from "../src/models/review.model.js";
 import Product from "../src/models/product.model.js";
 import User from "../src/models/user.model.js";
+import Order from "../src/models/order.model.js";
 import { connectTestDB, clearTestDB, disconnectTestDB } from "./setup/testDb.js";
 import { createAdminAgent, createCustomerAgent } from "./fixtures/auth.js";
 import { createMasterData, createTestProduct } from "./fixtures/masterData.js";
@@ -30,10 +32,62 @@ const createPublishedProduct = async () => {
   return product;
 };
 
+/**
+ * The verified-purchase gate (ADR-068) requires a Delivered order
+ * containing the product before createReview will allow one — every test
+ * below that expects a review POST to succeed needs one of these first.
+ * variant is a bare ObjectId rather than a real ProductVariant document:
+ * nothing here reads it back (no stock/restock assertions, unlike
+ * order.test.js's own equivalent helper), so a real one would only add
+ * setup with no test value.
+ */
+const createDeliveredOrderFor = async (userId, product) =>
+  Order.create({
+    user: userId,
+    items: [
+      {
+        variant: new mongoose.Types.ObjectId(),
+        product: product._id,
+        name: product.name,
+        sku: "REVIEW-GATE-TEST-SKU",
+        price: 100000,
+        quantity: 1,
+      },
+    ],
+    shippingAddress: {
+      fullName: "Test Customer",
+      phone: "9876543210",
+      addressLine: "221B Baker Colony, Sector 12",
+      city: "Jaipur",
+      state: "Rajasthan",
+      pincode: "302012",
+      country: "India",
+    },
+    paymentMethod: "COD",
+    paymentStatus: "N/A",
+    status: "Delivered",
+    subtotal: 100000,
+    shippingFee: 0,
+    total: 100000,
+  });
+
+/**
+ * createCustomerAgent (fixtures/auth.js) always creates the same
+ * customer@test.com and returns only the logged-in agent, not the user
+ * document — most tests below need both (the agent to call the API as,
+ * the user id to build a qualifying Order against).
+ */
+const createCustomerWithDeliveredOrder = async (product) => {
+  const agent = await createCustomerAgent();
+  const user = await User.findOne({ email: "customer@test.com" });
+  await createDeliveredOrderFor(user._id, product);
+  return agent;
+};
+
 describe("POST /api/products/:productId/reviews", () => {
   it("lets a logged-in customer post a review", async () => {
     const product = await createPublishedProduct();
-    const customer = await createCustomerAgent();
+    const customer = await createCustomerWithDeliveredOrder(product);
 
     const res = await customer
       .post(`/api/products/${product._id}/reviews`)
@@ -42,6 +96,7 @@ describe("POST /api/products/:productId/reviews", () => {
     expect(res.status).toBe(201);
     expect(res.body.data.rating).toBe(5);
     expect(res.body.data.user.name).toBe("Test Customer");
+    expect(res.body.data.isVerifiedPurchase).toBe(true);
 
     expect(await Review.countDocuments({ product: product._id })).toBe(1);
   });
@@ -69,7 +124,7 @@ describe("POST /api/products/:productId/reviews", () => {
 
   it("blocks a second review of the same product by the same customer", async () => {
     const product = await createPublishedProduct();
-    const customer = await createCustomerAgent();
+    const customer = await createCustomerWithDeliveredOrder(product);
 
     await customer.post(`/api/products/${product._id}/reviews`).send(validReview);
     const res = await customer
@@ -104,10 +159,110 @@ describe("POST /api/products/:productId/reviews", () => {
   });
 });
 
+describe("Verified-purchase review gating (ADR-068)", () => {
+  it("rejects a customer with no orders at all", async () => {
+    const product = await createPublishedProduct();
+    const customer = await createCustomerAgent();
+
+    const res = await customer
+      .post(`/api/products/${product._id}/reviews`)
+      .send(validReview);
+
+    expect(res.status).toBe(403);
+    expect(res.body.message).toMatch(/delivered order/i);
+    expect(await Review.countDocuments({ product: product._id })).toBe(0);
+  });
+
+  it.each(["Pending", "Confirmed", "Processing", "Shipped", "OutForDelivery", "Cancelled", "Returned"])(
+    "rejects a customer whose only order for this product is %s, not Delivered",
+    async (status) => {
+      const product = await createPublishedProduct();
+      const customer = await createCustomerAgent();
+      const user = await User.findOne({ email: "customer@test.com" });
+      const order = await createDeliveredOrderFor(user._id, product);
+      order.status = status;
+      await order.save();
+
+      const res = await customer
+        .post(`/api/products/${product._id}/reviews`)
+        .send(validReview);
+
+      expect(res.status).toBe(403);
+      expect(await Review.countDocuments({ product: product._id })).toBe(0);
+    },
+  );
+
+  it("rejects a customer whose Delivered order is for a different product", async () => {
+    // Both products share one set of Master Data (Category.name is
+    // unique) rather than calling createPublishedProduct() twice, which
+    // would try to create two Categories both named "Sofas".
+    const masterData = await createMasterData();
+    const product = await createTestProduct(masterData);
+    product.status = "published";
+    await product.save();
+
+    const otherProduct = await Product.create({
+      name: "Other Test Product",
+      category: masterData.category._id,
+      brand: masterData.brand._id,
+      roomTypes: [masterData.roomType._id],
+      status: "published",
+    });
+
+    const customer = await createCustomerAgent();
+    const user = await User.findOne({ email: "customer@test.com" });
+    await createDeliveredOrderFor(user._id, otherProduct);
+
+    const res = await customer
+      .post(`/api/products/${product._id}/reviews`)
+      .send(validReview);
+
+    expect(res.status).toBe(403);
+  });
+
+  it("allows a customer with a Delivered order for this exact product, and marks the review verified", async () => {
+    const product = await createPublishedProduct();
+    const customer = await createCustomerWithDeliveredOrder(product);
+
+    const res = await customer
+      .post(`/api/products/${product._id}/reviews`)
+      .send(validReview);
+
+    expect(res.status).toBe(201);
+    expect(res.body.data.isVerifiedPurchase).toBe(true);
+  });
+
+  it("does not retroactively flag a pre-existing review created without this gate (ADR-054's seeded reviews)", async () => {
+    const product = await createPublishedProduct();
+    const author = await User.create({
+      name: "Seeded Reviewer",
+      email: "seeded@test.com",
+      password: "testpassword123",
+      role: "customer",
+    });
+
+    // Created directly, bypassing createReview entirely — the same way
+    // seedReviews.js populated the 177 reviews under ADR-054, long before
+    // this gate (or Orders) existed. No Delivered order for this author.
+    const seededReview = await Review.create({
+      product: product._id,
+      user: author._id,
+      rating: 5,
+      comment: "Great piece, exactly as pictured on the site.",
+    });
+
+    expect(seededReview.isVerifiedPurchase).toBe(false);
+
+    const stillThere = await Review.findById(seededReview._id);
+    expect(stillThere).not.toBeNull();
+    expect(stillThere.isVerifiedPurchase).toBe(false);
+  });
+});
+
 describe("GET /api/products/:productId/reviews", () => {
   it("is public and returns a computed rating summary", async () => {
     const product = await createPublishedProduct();
-    const customer = await createCustomerAgent();
+    const customer = await createCustomerWithDeliveredOrder(product);
     await customer.post(`/api/products/${product._id}/reviews`).send(validReview);
 
     const res = await request(app).get(`/api/products/${product._id}/reviews`);
@@ -121,7 +276,7 @@ describe("GET /api/products/:productId/reviews", () => {
 
   it("averages across multiple reviewers", async () => {
     const product = await createPublishedProduct();
-    const customer = await createCustomerAgent();
+    const customer = await createCustomerWithDeliveredOrder(product);
     await customer.post(`/api/products/${product._id}/reviews`).send(validReview);
 
     const second = await User.create({
@@ -147,7 +302,7 @@ describe("GET /api/products/:productId/reviews", () => {
 describe("PUT /api/reviews/:reviewId", () => {
   it("lets a customer edit their own review", async () => {
     const product = await createPublishedProduct();
-    const customer = await createCustomerAgent();
+    const customer = await createCustomerWithDeliveredOrder(product);
     const created = await customer
       .post(`/api/products/${product._id}/reviews`)
       .send(validReview);
@@ -187,7 +342,7 @@ describe("PUT /api/reviews/:reviewId", () => {
 describe("DELETE /api/reviews/:reviewId", () => {
   it("lets a customer delete their own review", async () => {
     const product = await createPublishedProduct();
-    const customer = await createCustomerAgent();
+    const customer = await createCustomerWithDeliveredOrder(product);
     const created = await customer
       .post(`/api/products/${product._id}/reviews`)
       .send(validReview);
@@ -224,7 +379,7 @@ describe("DELETE /api/reviews/:reviewId", () => {
 describe("GET /api/reviews (admin moderation list)", () => {
   it("returns every review to an admin, with product and user attached", async () => {
     const product = await createPublishedProduct();
-    const customer = await createCustomerAgent();
+    const customer = await createCustomerWithDeliveredOrder(product);
     await customer.post(`/api/products/${product._id}/reviews`).send(validReview);
 
     const admin = await createAdminAgent();
@@ -265,7 +420,7 @@ describe("GET /api/reviews (admin moderation list)", () => {
       comment: "One star, the finish was badly chipped.",
     });
 
-    const customer = await createCustomerAgent();
+    const customer = await createCustomerWithDeliveredOrder(product);
     await customer.post(`/api/products/${product._id}/reviews`).send(validReview); // 5 stars
 
     const admin = await createAdminAgent();
@@ -279,7 +434,7 @@ describe("GET /api/reviews (admin moderation list)", () => {
 describe("Ratings on product responses", () => {
   it("attaches averageRating and reviewCount to the product listing", async () => {
     const product = await createPublishedProduct();
-    const customer = await createCustomerAgent();
+    const customer = await createCustomerWithDeliveredOrder(product);
     await customer
       .post(`/api/products/${product._id}/reviews`)
       .send({ rating: 4, comment: "Comfortable and well made overall." });

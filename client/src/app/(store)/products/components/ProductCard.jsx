@@ -54,6 +54,15 @@ export default function ProductCard({ product }) {
             New
           </span>
         )}
+        {/* Real per-category leader by units sold across Delivered orders,
+            computed fresh on every request — never a fixed/invented list
+            (ADR-068). Opposite corner from the discount/New badges so a
+            product that's genuinely both doesn't need to pick one. */}
+        {product.isBestseller && (
+          <span className="absolute right-3 top-3 rounded-full bg-[#B8863B] px-3 py-1 text-xs font-medium text-white">
+            Bestseller
+          </span>
+        )}
       </div>
 
       {/* Sizes step down on mobile because the grid is two-up there —

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Review from "../models/review.model.js";
 import Product from "../models/product.model.js";
+import Order from "../models/order.model.js";
 import AppError from "../utils/AppError.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 
@@ -148,11 +149,32 @@ export const createReview = async (req, res) => {
     throw new AppError("You've already reviewed this product. Edit your review instead.", 409);
   }
 
+  // Verified-purchase gate (ADR-068): only a customer with at least one
+  // Delivered order containing this product may review it. Deliberately
+  // Delivered specifically, not any non-cancelled status — a Shipped
+  // order hasn't proven the customer actually received and used the
+  // product yet, and a Cancelled/Returned one is a reversed sale, not a
+  // real experience with it. This only ever gates a *new* review; the
+  // 177 reviews seeded under ADR-054 predate Orders entirely and are
+  // untouched by this check.
+  const hasQualifyingOrder = await Order.exists({
+    user: req.user._id,
+    status: "Delivered",
+    "items.product": productId,
+  });
+  if (!hasQualifyingOrder) {
+    throw new AppError(
+      "You can review a product only after a delivered order that includes it.",
+      403,
+    );
+  }
+
   const review = await Review.create({
     product: productId,
     user: req.user._id,
     rating,
     comment,
+    isVerifiedPurchase: true,
   });
 
   await review.populate("user", "name");

@@ -11,6 +11,7 @@ import AppError from "../utils/AppError.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
 import { getReviewSummary } from "./review.controller.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
+import { getBestsellerByCategory } from "../utils/bestseller.js";
 
 const isValidObjectId = (value) =>
   typeof value === "string" && mongoose.Types.ObjectId.isValid(value);
@@ -182,6 +183,7 @@ export const getProducts = async (req, res) => {
   // to avoid an N+1 fetch. Grouping across the page's product ids keeps
   // that guarantee: always exactly two extra queries (one for pricing,
   // one for ratings, run in parallel), regardless of page size (ADR-052).
+  // A third, the Bestseller check below, follows the same rule.
   const productIds = products.map((p) => p._id);
   const [priceRows, ratingRows] = await Promise.all([
     ProductVariant.aggregate([
@@ -212,15 +214,25 @@ export const getProducts = async (req, res) => {
   const priceByProduct = new Map(priceRows.map((r) => [String(r._id), r]));
   const ratingByProduct = new Map(ratingRows.map((r) => [String(r._id), r]));
 
+  // One more aggregation for the whole page, same shape as pricing/ratings
+  // above — scoped to only the categories actually present on this page,
+  // not the whole catalog (ADR-068).
+  const pageCategoryIds = [
+    ...new Set(products.map((p) => String(p.category?._id ?? p.category))),
+  ];
+  const bestsellerByCategory = await getBestsellerByCategory(pageCategoryIds);
+
   const productsWithPricing = products.map((product) => {
     const pricing = priceByProduct.get(String(product._id));
     const rating = ratingByProduct.get(String(product._id));
+    const categoryId = String(product.category?._id ?? product.category);
     return {
       ...product.toObject(),
       fromPrice: pricing?.minPrice ?? null,
       compareAtPrice: pricing?.maxCompareAtPrice ?? null,
       averageRating: rating ? Number(rating.averageRating.toFixed(2)) : null,
       reviewCount: rating?.reviewCount ?? 0,
+      isBestseller: bestsellerByCategory.get(categoryId) === String(product._id),
     };
   });
 
@@ -365,8 +377,14 @@ export const getProductById = async (req, res) => {
 
   // Attached here rather than fetched separately by the product page, so
   // the star rating renders with the rest of the product instead of
-  // popping in after a second request.
-  const summary = await getReviewSummary(productId);
+  // popping in after a second request. Same for the bestseller flag —
+  // one more real-time aggregation, scoped to just this product's own
+  // category (ADR-068).
+  const categoryId = String(product.category?._id ?? product.category);
+  const [summary, bestsellerByCategory] = await Promise.all([
+    getReviewSummary(productId),
+    getBestsellerByCategory([categoryId]),
+  ]);
 
   return res.status(200).json({
     success: true,
@@ -374,6 +392,7 @@ export const getProductById = async (req, res) => {
       ...product.toObject(),
       averageRating: summary.averageRating,
       reviewCount: summary.reviewCount,
+      isBestseller: bestsellerByCategory.get(categoryId) === String(product._id),
     },
   });
 };

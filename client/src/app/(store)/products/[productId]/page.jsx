@@ -237,11 +237,20 @@ export default function ProductDetailPage() {
 
         {/* Details */}
         <div>
-          {product.category?.name && (
-            <p className="text-xs uppercase tracking-wide text-[#8B5E3C]">
-              {product.category.name}
-            </p>
-          )}
+          <div className="flex flex-wrap items-center gap-2">
+            {product.category?.name && (
+              <p className="text-xs uppercase tracking-wide text-[#8B5E3C]">
+                {product.category.name}
+              </p>
+            )}
+            {/* Same real, category-scoped computation as the listing card's
+                badge (ADR-068) — never shown from a stored/cached flag. */}
+            {product.isBestseller && (
+              <span className="rounded-full bg-[#B8863B] px-2.5 py-0.5 text-xs font-medium text-white">
+                Bestseller
+              </span>
+            )}
+          </div>
 
           <div className="mt-2 flex items-start justify-between gap-4">
             <h1 className="font-heading text-4xl text-[#1C1917]">

@@ -7,9 +7,13 @@ import mongoose from "mongoose";
  * from these documents, so seeding demo reviews is the same kind of demo
  * data as the seeded catalog — not an invented number typed into JSX.
  *
- * Deliberately NOT verified-purchase-gated: Orders don't exist yet
- * (Commerce is unbuilt), so requiring a purchase would make the feature
- * unreachable. When Orders land, this is where that check belongs.
+ * Verified-purchase gated as of ADR-068: review.controller.js's
+ * createReview requires at least one Delivered order containing the
+ * product before a review can be created at all, and isVerifiedPurchase
+ * records that a given review passed that gate. The 177 reviews seeded
+ * under ADR-054 predate Orders existing as a concept — they were never
+ * re-run against this rule and never will be; `default: false` is what
+ * they show, honestly, without a migration pretending otherwise.
  */
 const reviewSchema = new mongoose.Schema(
   {
@@ -39,6 +43,15 @@ const reviewSchema = new mongoose.Schema(
       trim: true,
       minlength: [10, "Comment must be at least 10 characters"],
       maxlength: [1000, "Comment cannot exceed 1000 characters"],
+    },
+
+    // Server-set only (ADR-068) — never accepted from the client, the
+    // same way Order's snapshot fields aren't either. `default: false`
+    // is what every review created before this field existed reads as,
+    // with no migration needed to make that true.
+    isVerifiedPurchase: {
+      type: Boolean,
+      default: false,
     },
   },
   {

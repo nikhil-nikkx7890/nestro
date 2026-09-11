@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Pencil } from "lucide-react";
+import { Trash2, Pencil, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
 
 import { reviewService } from "@/services/review.service";
@@ -270,10 +270,24 @@ export default function ProductReviews({ productId, onSummaryChange }) {
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <StarRating rating={review.rating} showCount={false} size={14} />
-                          <p className="mt-2 font-medium text-[#1C1917]">
+                          <p className="mt-2 flex flex-wrap items-center gap-1.5 font-medium text-[#1C1917]">
                             {review.user?.name || "Customer"}
+                            {/* Only true for a review that passed the
+                                Delivered-order gate at creation time
+                                (ADR-068) — absent, not false-badged, on
+                                every review seeded before that gate
+                                existed (ADR-054). */}
+                            {review.isVerifiedPurchase && (
+                              <span
+                                className="inline-flex items-center gap-1 text-xs font-normal text-[#78716C]"
+                                title="This reviewer had a delivered order for this product."
+                              >
+                                <BadgeCheck size={13} className="text-[#8B5E3C]" />
+                                Verified Purchase
+                              </span>
+                            )}
                             {isMine && (
-                              <span className="ml-2 text-xs font-normal text-[#8B5E3C]">
+                              <span className="text-xs font-normal text-[#8B5E3C]">
                                 Your review
                               </span>
                             )}
