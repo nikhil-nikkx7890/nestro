@@ -35,9 +35,13 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
-      const newUser = await registerUser(data);
-      toast.success(`Welcome, ${newUser.name}`);
-      router.push("/products");
+      // The response is a generic "if available" message either way
+      // (ADR-062) — no user is returned and no auth cookie is set, so
+      // there's nothing to log in with here. Send them to sign in with
+      // the credentials they just chose, same as any returning user.
+      const res = await registerUser(data);
+      toast.success(res.message);
+      router.push("/login");
     } catch (error) {
       const message =
         error?.response?.data?.message || "Registration failed. Please try again.";

@@ -41,6 +41,21 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // Password reset (ADR-062). Both select: false, same reasoning as
+    // password above — a hash and an expiry timestamp for an in-flight
+    // reset shouldn't leak through a stray query or response either.
+    // Cleared (set to undefined) the moment the OTP is verified, so a
+    // verified code can't be replayed — only the short-lived reset token
+    // issued at that point carries the flow forward from there.
+    passwordResetOTPHash: {
+      type: String,
+      select: false,
+    },
+    passwordResetOTPExpires: {
+      type: Date,
+      select: false,
+    },
   },
   {
     timestamps: true,

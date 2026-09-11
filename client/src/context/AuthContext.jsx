@@ -30,13 +30,13 @@ export function AuthProvider({ children }) {
     return res.data;
   };
 
-  // Register also sets the auth cookie server-side (same as login) and
-  // returns the created user, so this mirrors login() exactly rather than
-  // requiring a separate login call right after registering.
+  // Register no longer sets the auth cookie or returns a user (ADR-062) —
+  // the response is deliberately identical whether the email was new or
+  // already registered, so there's nothing to setUser() from here. The
+  // page just shows the generic message and sends the user to /login.
   const register = async (data) => {
     const res = await authService.register(data);
-    setUser(res.data);
-    return res.data;
+    return res;
   };
 
   const logout = async () => {
@@ -44,17 +44,27 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  // Mirrors login/register — call the API, then sync context state from
-  // the response rather than re-fetching /me separately.
+  // Mirrors login — call the API, then sync context state from the
+  // response rather than re-fetching /me separately.
   const updateProfile = async (data) => {
     const res = await authService.updateMe(data);
     setUser(res.data);
     return res.data;
   };
 
+  // Step 3 of password reset (ADR-062). Unlike register/forgotPassword,
+  // reaching this point already proves the caller verified a real OTP for
+  // this account, so — like login — it sets the auth cookie and signs
+  // the user straight in rather than sending them back to /login.
+  const resetPassword = async (data) => {
+    const res = await authService.resetPassword(data);
+    setUser(res.data);
+    return res.data;
+  };
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, updateProfile }}
+      value={{ user, loading, login, register, logout, updateProfile, resetPassword }}
     >
       {children}
     </AuthContext.Provider>

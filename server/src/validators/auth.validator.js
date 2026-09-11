@@ -31,3 +31,28 @@ export const updateMeSchema = z
       .max(50, "Name cannot exceed 50 characters."),
   })
   .strict();
+
+// Password reset, 3-step OTP flow (ADR-062).
+
+export const forgotPasswordSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+  })
+  .strict();
+
+export const verifyResetOtpSchema = z
+  .object({
+    email: z.string().trim().toLowerCase().email("Enter a valid email address."),
+    otp: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/, "Enter the 6-digit code from your email."),
+  })
+  .strict();
+
+export const resetPasswordSchema = z
+  .object({
+    resetToken: z.string().min(1, "Reset token is required."),
+    newPassword: z.string().min(8, "Password must be at least 8 characters."),
+  })
+  .strict();
