@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -9,6 +10,7 @@ import clsx from "clsx";
 import { useRequireCustomer } from "@/hooks/useRequireCustomer";
 import { useAuth } from "@/context/AuthContext";
 import { authService } from "@/services/auth.service";
+import { addressService } from "@/services/address.service";
 import { profileSchema } from "./schemas/profile.schema";
 
 export default function AccountPage() {
@@ -21,6 +23,30 @@ export default function AccountPage() {
   // call is the same "don't abstract until it fits" call the Contact
   // form already makes for its own stateless action.
   const [isResending, setIsResending] = useState(false);
+
+  // Just a summary here (count + default) — the full list/add/edit/delete
+  // UI lives on its own page (/account/addresses), the same "preview
+  // block links out to the real page" shape as Order History below would
+  // use once Orders exists.
+  const [addresses, setAddresses] = useState(null);
+
+  const fetchAddresses = useCallback(async () => {
+    try {
+      const res = await addressService.list();
+      setAddresses(res.data);
+    } catch (error) {
+      // Silent — this is a summary card, not the primary content of the
+      // page; the full addresses page surfaces its own errors properly.
+    }
+  }, []);
+
+  // Category A (ADR-059): fetch-on-mount, same shape as CartContext's
+  // own suppressed effect.
+  useEffect(() => {
+    if (!ready) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchAddresses();
+  }, [ready, fetchAddresses]);
 
   const {
     register,
@@ -35,6 +61,8 @@ export default function AccountPage() {
   useEffect(() => {
     reset({ name: user?.name || "" });
   }, [user, reset]);
+
+  const defaultAddress = addresses?.find((a) => a.isDefault) || addresses?.[0] || null;
 
   if (!ready) {
     return (
@@ -143,6 +171,31 @@ export default function AccountPage() {
             {isSubmitting ? "Saving..." : "Save Changes"}
           </button>
         </form>
+      </div>
+
+      <div className="mt-10 rounded-2xl border border-[#E7E5E4] p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="font-heading text-xl text-[#1C1917]">Addresses</h2>
+          <Link
+            href="/account/addresses"
+            className="text-sm font-medium text-[#8B5E3C] hover:underline"
+          >
+            Manage Addresses
+          </Link>
+        </div>
+
+        {addresses === null ? (
+          <p className="mt-3 text-sm text-[#78716C]">Loading...</p>
+        ) : addresses.length === 0 ? (
+          <p className="mt-3 text-sm text-[#78716C]">
+            You haven&apos;t saved any addresses yet.
+          </p>
+        ) : (
+          <p className="mt-3 text-sm text-[#44403C]">
+            {addresses.length} saved {addresses.length === 1 ? "address" : "addresses"} —
+            default: {defaultAddress.fullName}, {defaultAddress.city}, {defaultAddress.state}
+          </p>
+        )}
       </div>
 
       <div className="mt-10 rounded-2xl border border-[#E7E5E4] p-6">
