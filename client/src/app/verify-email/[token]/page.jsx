@@ -60,12 +60,21 @@ export default function VerifyEmailPage() {
           <>
             <h1 className="text-2xl font-bold tracking-tight">Email verified</h1>
             <p className="mt-2 text-sm text-neutral-500">{message}</p>
-            <Link
+            {/* A plain <a>, not next/link, deliberately — this needs a
+                real navigation, not a client-side transition. If the
+                visitor is already logged in (their AuthContext was
+                populated by a /me fetch before this page's own verify
+                call ran), Link's client-side routing would carry that
+                stale isEmailVerified: false straight onto the account
+                page, leaving the banner showing despite verification
+                having just succeeded. A full navigation remounts
+                AuthProvider and re-fetches /me, picking up the flip. */}
+            <a
               href="/account"
               className="mt-6 inline-block rounded-xl bg-neutral-900 px-5 py-3 text-sm font-medium text-white transition hover:bg-neutral-800"
             >
               Go to your account
-            </Link>
+            </a>
           </>
         )}
 

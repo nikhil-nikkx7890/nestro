@@ -87,8 +87,8 @@ export default function AccountPage() {
               Please verify your email address
             </p>
             <p className="mt-1 text-sm text-amber-800">
-              We sent a link to {user.email} when you registered. Didn&apos;t get it, or has it
-              expired?
+              We sent a link to {user.email}{" "}
+              when you registered. Didn&apos;t get it, or has it expired?
             </p>
           </div>
           <button
