@@ -24,21 +24,38 @@ import { verifyOrigin } from "./middlewares/verifyOrigin.js";
 const app = express();
 
 /**
- * Render (and any platform proxy) terminates TLS and forwards the request,
- * so without this every request reports the proxy's address as req.ip and
- * express-rate-limit buckets the entire site under one key — the general
- * limiter gets consumed collectively, and the stricter auth limiter inverts
- * into a denial of service where twenty failed logins lock out everyone
+ * Without this, every request reports a proxy's address as req.ip and
+ * express-rate-limit buckets accordingly — the general limiter gets
+ * consumed collectively, and the stricter auth limiter inverts into a
+ * denial of service where twenty failed logins lock out everyone
  * (ADR-058).
  *
- * `1`, not `true`: trust exactly one hop, the platform proxy that actually
- * sits in front of this app. `true` trusts a client-supplied
- * X-Forwarded-For, which would let a caller mint a fresh rate-limit key per
- * request and remove the limit entirely.
+ * There are TWO hops in front of this app, not one: Cloudflare, then
+ * Render's own router. Production responses carry both — `Server:
+ * cloudflare` and a `CF-RAY` header from the edge, plus Render's own
+ * `rndr-id` — for the whole time this went unnoticed. ADR-058 set `1`,
+ * reasoning about "the platform proxy" as a single hop and stopping there;
+ * that undercounted by one, so `req.ip` resolved to the Cloudflare edge
+ * address instead of the client. One Cloudflare colo answers from many
+ * edge IPs, so that collapsed many distinct clients onto a handful of
+ * shared buckets — better than ADR-058's original single global bucket,
+ * but still not per-client (ADR-060).
+ *
+ * `2`, not `true`: trust exactly two hops. `true` trusts a client-supplied
+ * X-Forwarded-For with no limit, which would let a caller mint a fresh
+ * rate-limit key per request and remove the limit entirely.
+ *
+ * This number encodes a fact about the deployment chain, not about the
+ * code — it has to be re-measured from response headers, not inferred
+ * from a diagram, if that chain ever changes (another CDN in front,
+ * Cloudflare removed, a second load balancer). A `CF-Connecting-IP`
+ * keyGenerator was considered and rejected for the same reason: it would
+ * fix the limiter but leave req.ip wrong everywhere else that reads it,
+ * including the request logging this app doesn't have yet (ADR-060).
  *
  * Must be set before the limiters are mounted below.
  */
-app.set("trust proxy", 1);
+app.set("trust proxy", 2);
 
 const allowedOrigins = (process.env.CLIENT_URL || "http://localhost:3000")
   .split(",")
