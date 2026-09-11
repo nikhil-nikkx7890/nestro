@@ -1,5 +1,5 @@
-import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
+import { verifyLoginToken } from "../utils/jwt.js";
 
 /**
  * Same JWT-cookie check as authenticate.js, but never throws — a missing
@@ -8,6 +8,10 @@ import User from "../models/user.model.js";
  * Lets one route serve both an authenticated admin (full visibility) and
  * an anonymous storefront caller (restricted visibility) without a
  * parallel route tree (ADR-036).
+ *
+ * verifyLoginToken (not raw jwt.verify) for the same reason as
+ * authenticate.js — a leaked reset or email-verification token must not
+ * grant even anonymous-vs-admin visibility here either (ADR-063).
  */
 export const optionalAuthenticate = async (req, res, next) => {
   const token = req.cookies?.token;
@@ -17,7 +21,7 @@ export const optionalAuthenticate = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = verifyLoginToken(token);
     const user = await User.findById(decoded.userId);
 
     if (user && user.isActive) {

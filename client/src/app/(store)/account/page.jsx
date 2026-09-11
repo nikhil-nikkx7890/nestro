@@ -8,12 +8,19 @@ import clsx from "clsx";
 
 import { useRequireCustomer } from "@/hooks/useRequireCustomer";
 import { useAuth } from "@/context/AuthContext";
+import { authService } from "@/services/auth.service";
 import { profileSchema } from "./schemas/profile.schema";
 
 export default function AccountPage() {
   const { ready } = useRequireCustomer();
   const { user, updateProfile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Not wired through AuthContext — resending doesn't change any user
+  // state the rest of the app reads (isEmailVerified only flips once the
+  // link is actually clicked, on a different page), so a direct service
+  // call is the same "don't abstract until it fits" call the Contact
+  // form already makes for its own stateless action.
+  const [isResending, setIsResending] = useState(false);
 
   const {
     register,
@@ -51,10 +58,49 @@ export default function AccountPage() {
     }
   };
 
+  const onResendVerification = async () => {
+    setIsResending(true);
+    try {
+      const res = await authService.resendVerificationEmail();
+      toast.success(res.message);
+    } catch (error) {
+      const message =
+        error?.response?.data?.message || "Failed to send verification email. Please try again.";
+      toast.error(message);
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   return (
     <div className="mx-auto max-w-3xl px-6 py-16 sm:px-10 sm:py-20">
       <p className="text-xs uppercase tracking-[0.2em] text-[#8B5E3C]">Account</p>
       <h1 className="mt-4 font-heading text-4xl text-[#1C1917]">Your Profile</h1>
+
+      {/* Verify-but-don't-block (ADR-063): the account already works fully
+          without this — the banner is a visible, actionable reminder, not
+          a gate. Hidden entirely once isEmailVerified flips true. */}
+      {user && !user.isEmailVerified && (
+        <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-amber-900">
+              Please verify your email address
+            </p>
+            <p className="mt-1 text-sm text-amber-800">
+              We sent a link to {user.email} when you registered. Didn&apos;t get it, or has it
+              expired?
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onResendVerification}
+            disabled={isResending}
+            className="shrink-0 rounded-lg border border-amber-300 bg-white px-4 py-2 text-sm font-medium text-amber-900 transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isResending ? "Sending..." : "Resend verification email"}
+          </button>
+        </div>
+      )}
 
       <div className="mt-10 rounded-2xl border border-[#E7E5E4] p-6">
         <h2 className="font-heading text-xl text-[#1C1917]">Profile Details</h2>

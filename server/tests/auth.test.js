@@ -1,7 +1,9 @@
 import request from "supertest";
+import jwt from "jsonwebtoken";
 import app from "../src/app.js";
 import User from "../src/models/user.model.js";
 import { hashOTP } from "../src/utils/otp.js";
+import { generateEmailVerificationToken, generateResetToken } from "../src/utils/jwt.js";
 import { connectTestDB, clearTestDB, disconnectTestDB } from "./setup/testDb.js";
 
 beforeAll(async () => {
@@ -38,6 +40,7 @@ describe("POST /api/auth/register", () => {
     expect(inDb).not.toBeNull();
     expect(inDb.role).toBe("customer"); // never trusts a client-supplied role
     expect(inDb.password).not.toBe(testUser.password); // stored as a bcrypt hash, not plain text
+    expect(inDb.isEmailVerified).toBe(false); // ADR-063: unverified until the emailed link is clicked
   });
 
   // ADR-062, closing ADR-058 Finding 1: an existing email must be
@@ -117,6 +120,32 @@ describe("GET /api/auth/me", () => {
 
     expect(res.status).toBe(200);
     expect(res.body.data.email).toBe(testUser.email);
+  });
+
+  // Regression for a gap ADR-063 found while adding the email-verification
+  // token: authenticate() used raw jwt.verify with no purpose check, so a
+  // reset or verification token — both signed with the same secret — would
+  // decode cleanly and grant a full session if presented as the cookie.
+  // The email-verification token made this materially worse (24h window
+  // vs. the reset token's 10m). verifyLoginToken (utils/jwt.js) now
+  // rejects any token carrying a purpose claim; both middlewares
+  // (authenticate, optionalAuthenticate) share that one function.
+  it("rejects a reset or email-verification token presented as the session cookie", async () => {
+    await request(app).post("/api/auth/register").send(testUser);
+    const user = await User.findOne({ email: testUser.email });
+
+    const resetToken = generateResetToken(user._id);
+    const verifyToken = generateEmailVerificationToken(user._id);
+
+    const withResetToken = await request(app)
+      .get("/api/auth/me")
+      .set("Cookie", `token=${resetToken}`);
+    const withVerifyToken = await request(app)
+      .get("/api/auth/me")
+      .set("Cookie", `token=${verifyToken}`);
+
+    expect(withResetToken.status).toBe(401);
+    expect(withVerifyToken.status).toBe(401);
   });
 });
 
@@ -399,5 +428,136 @@ describe("POST /api/auth/reset-password", () => {
     // the replayed value) so a future change to that is a deliberate,
     // visible diff rather than a silent regression either way.
     expect(replay.status).toBe(200);
+  });
+});
+
+describe("GET /api/auth/verify-email/:token", () => {
+  // The real token only ever exists inside an unobservable email send
+  // (register's welcome/verify email is swallowed by the same .catch()
+  // pattern used everywhere else in this suite) — same reasoning as
+  // seedOtp above, so this builds one directly through the actual
+  // utility rather than trying to extract it from a response.
+  it("verifies the account for a valid token", async () => {
+    await request(app).post("/api/auth/register").send(testUser);
+    const user = await User.findOne({ email: testUser.email });
+    const token = generateEmailVerificationToken(user._id);
+
+    const res = await request(app).get(`/api/auth/verify-email/${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+
+    const inDb = await User.findOne({ email: testUser.email });
+    expect(inDb.isEmailVerified).toBe(true);
+  });
+
+  // ADR-063: unlike the OTP flow, verifying is deliberately idempotent —
+  // no account-takeover risk in a reused link, so a second click (or an
+  // email client's link-preview bot) must not error.
+  it("is idempotent — verifying an already-verified account still succeeds", async () => {
+    await request(app).post("/api/auth/register").send(testUser);
+    const user = await User.findOne({ email: testUser.email });
+    const token = generateEmailVerificationToken(user._id);
+
+    await request(app).get(`/api/auth/verify-email/${token}`);
+    const second = await request(app).get(`/api/auth/verify-email/${token}`);
+
+    expect(second.status).toBe(200);
+    const inDb = await User.findOne({ email: testUser.email });
+    expect(inDb.isEmailVerified).toBe(true);
+  });
+
+  it("rejects a malformed token", async () => {
+    const res = await request(app).get("/api/auth/verify-email/not-a-real-token");
+
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects an expired token", async () => {
+    await request(app).post("/api/auth/register").send(testUser);
+    const user = await User.findOne({ email: testUser.email });
+    const expiredToken = jwt.sign(
+      { userId: user._id, purpose: "email-verification" },
+      process.env.JWT_SECRET,
+      { expiresIn: "-1s" },
+    );
+
+    const res = await request(app).get(`/api/auth/verify-email/${expiredToken}`);
+
+    expect(res.status).toBe(400);
+    const inDb = await User.findOne({ email: testUser.email });
+    expect(inDb.isEmailVerified).toBe(false);
+  });
+
+  // Same cross-purpose guard as reset-password's equivalent test — a
+  // real, currently-valid login token must not double as a verification
+  // token just because both are signed with the same secret.
+  it("rejects a valid login token presented as a verification token", async () => {
+    await request(app).post("/api/auth/register").send(testUser);
+    const loginRes = await request(app)
+      .post("/api/auth/login")
+      .send({ email: testUser.email, password: testUser.password });
+
+    const loginCookie = loginRes.headers["set-cookie"][0];
+    const loginToken = loginCookie.split(";")[0].split("=")[1];
+
+    const res = await request(app).get(`/api/auth/verify-email/${loginToken}`);
+
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects a token for a user that no longer exists", async () => {
+    await request(app).post("/api/auth/register").send(testUser);
+    const user = await User.findOne({ email: testUser.email });
+    const token = generateEmailVerificationToken(user._id);
+    await User.deleteOne({ _id: user._id });
+
+    const res = await request(app).get(`/api/auth/verify-email/${token}`);
+
+    expect(res.status).toBe(400);
+  });
+});
+
+describe("POST /api/auth/resend-verification-email", () => {
+  it("returns 401 when no auth cookie is sent", async () => {
+    const res = await request(app).post("/api/auth/resend-verification-email");
+
+    expect(res.status).toBe(401);
+  });
+
+  it("sends a new verification email for an unverified account", async () => {
+    const agent = request.agent(app);
+    await agent.post("/api/auth/register").send(testUser);
+    await agent
+      .post("/api/auth/login")
+      .send({ email: testUser.email, password: testUser.password });
+
+    const res = await agent.post("/api/auth/resend-verification-email");
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("Verification email sent.");
+
+    // Unaffected by the resend itself — only clicking the link verifies.
+    const inDb = await User.findOne({ email: testUser.email });
+    expect(inDb.isEmailVerified).toBe(false);
+  });
+
+  // Benign no-op rather than an error — see the controller's own comment
+  // for why this isn't treated as a caller mistake.
+  it("treats an already-verified account as a no-op success", async () => {
+    const agent = request.agent(app);
+    await agent.post("/api/auth/register").send(testUser);
+    await agent
+      .post("/api/auth/login")
+      .send({ email: testUser.email, password: testUser.password });
+
+    const user = await User.findOne({ email: testUser.email });
+    const verifyToken = generateEmailVerificationToken(user._id);
+    await request(app).get(`/api/auth/verify-email/${verifyToken}`);
+
+    const res = await agent.post("/api/auth/resend-verification-email");
+
+    expect(res.status).toBe(200);
+    expect(res.body.message).toBe("This email is already verified.");
   });
 });

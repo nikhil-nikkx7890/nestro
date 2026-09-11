@@ -22,12 +22,49 @@ const wrapper = (bodyHtml) => `
   </div>
 `;
 
-export const welcomeEmail = (name) => ({
-  subject: "Welcome to Nestro",
+/**
+ * Sent once, at registration. Combines the welcome message with the
+ * verification link (ADR-063) rather than sending two separate emails —
+ * a new account gets one message, not a "welcome" followed immediately
+ * by a "now verify" as a second, near-duplicate send.
+ */
+export const welcomeAndVerifyEmail = (name, verifyUrl) => ({
+  subject: "Welcome to Nestro — verify your email",
   html: wrapper(`
     <p style="margin: 0 0 16px; font-size: 16px; color: #1c1917;">Hi ${name},</p>
     <p style="margin: 0 0 16px; font-size: 15px; color: #44403c; line-height: 1.6;">
-      Your Nestro account has been created. Head back to the site and sign in with the email and password you chose.
+      Your Nestro account has been created. You can sign in right away — but take a moment to verify this email address too, so it's confirmed as yours.
+    </p>
+    <p style="margin: 0 0 16px; text-align: center;">
+      <a href="${verifyUrl}" style="display: inline-block; padding: 12px 28px; background-color: #1c1917; color: #ffffff; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">
+        Verify Email
+      </a>
+    </p>
+    <p style="margin: 0; font-size: 13px; color: #78716c; line-height: 1.6;">
+      This link expires in 24 hours. Verifying is optional — your account works either way — but you can always request a new link from your account page if this one lapses.
+    </p>
+  `),
+});
+
+/**
+ * Sent by POST /api/auth/resend-verification-email (ADR-063) — same
+ * content and shape as the verification half of welcomeAndVerifyEmail
+ * above, without the welcome framing, since the account already exists.
+ */
+export const verificationEmail = (name, verifyUrl) => ({
+  subject: "Verify your Nestro email",
+  html: wrapper(`
+    <p style="margin: 0 0 16px; font-size: 16px; color: #1c1917;">Hi ${name},</p>
+    <p style="margin: 0 0 16px; font-size: 15px; color: #44403c; line-height: 1.6;">
+      Here's a new link to verify your Nestro account's email address.
+    </p>
+    <p style="margin: 0 0 16px; text-align: center;">
+      <a href="${verifyUrl}" style="display: inline-block; padding: 12px 28px; background-color: #1c1917; color: #ffffff; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: 600;">
+        Verify Email
+      </a>
+    </p>
+    <p style="margin: 0; font-size: 13px; color: #78716c; line-height: 1.6;">
+      This link expires in 24 hours.
     </p>
   `),
 });

@@ -1,6 +1,6 @@
-import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 import AppError from "../utils/AppError.js";
+import { verifyLoginToken } from "../utils/jwt.js";
 
 /**
  * Confirms the request carries a valid, unexpired JWT (from the httpOnly
@@ -15,14 +15,13 @@ export const authenticate = async (req, res, next) => {
     throw new AppError("You are not logged in. Please log in to continue.", 401);
   }
 
-  // jwt.verify throws on both an invalid signature and an expired token.
-  // Caught explicitly (rather than left to the global errorHandler) so the
-  // client gets a clean 401 with a clear message, instead of a generic
-  // 500 — the raw JsonWebTokenError isn't an AppError, so errorHandler
-  // would otherwise treat it as an unexpected server error.
+  // verifyLoginToken throws on an invalid signature, an expired token,
+  // AND a well-formed reset/email-verification token (ADR-063) — any of
+  // those is caught here the same way, since the client's response is
+  // identical either way: not currently logged in.
   let decoded;
   try {
-    decoded = jwt.verify(token, process.env.JWT_SECRET);
+    decoded = verifyLoginToken(token);
   } catch (err) {
     throw new AppError("Invalid or expired session. Please log in again.", 401);
   }

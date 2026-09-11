@@ -78,7 +78,15 @@ const seedReviews = async () => {
   for (const demo of DEMO_CUSTOMERS) {
     let user = await User.findOne({ email: demo.email });
     if (!user) {
-      user = await User.create({ ...demo, password: DEMO_PASSWORD, role: "customer" });
+      // isEmailVerified: true — same reasoning as seedAdmin.js: a
+      // synthetic @nestro.test address seeded directly has no real
+      // inbox to click a verification link from (ADR-063).
+      user = await User.create({
+        ...demo,
+        password: DEMO_PASSWORD,
+        role: "customer",
+        isEmailVerified: true,
+      });
       console.log(`Created demo customer: ${demo.name}`);
     }
     customers.push(user);

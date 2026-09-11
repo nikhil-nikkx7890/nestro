@@ -47,4 +47,15 @@ export const authService = {
     const response = await api.post("/auth/reset-password", data);
     return response.data;
   },
+
+  // Email verification, verify-but-don't-block (ADR-063).
+  verifyEmail: async (token) => {
+    const response = await api.get(`/auth/verify-email/${token}`);
+    return response.data;
+  },
+
+  resendVerificationEmail: async () => {
+    const response = await api.post("/auth/resend-verification-email");
+    return response.data;
+  },
 };

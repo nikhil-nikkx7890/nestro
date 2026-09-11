@@ -38,6 +38,11 @@ const seedAdmin = async () => {
     email: adminEmail,
     password: adminPassword,
     role: "admin",
+    // Provisioned directly, not through /api/auth/register — there's no
+    // verification link to click for an account that never received one,
+    // so this would otherwise be a permanently-unfixable "please verify"
+    // banner on an account that can't (ADR-063).
+    isEmailVerified: true,
   });
 
   console.log(`Admin account created:`);

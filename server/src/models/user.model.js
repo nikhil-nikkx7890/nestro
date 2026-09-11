@@ -42,6 +42,18 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
+    // Email verification (ADR-063). Not select: false — unlike the
+    // reset-flow fields below, this is meant to be read everywhere the
+    // rest of the user object is (getMe, login, the account page banner),
+    // not hidden by default. No token/expiry fields alongside it: the
+    // verification link is a self-contained, purpose-scoped JWT
+    // (generateEmailVerificationToken in utils/jwt.js), so there's
+    // nothing to store or clear here — only this flag, flipped once.
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
+
     // Password reset (ADR-062). Both select: false, same reasoning as
     // password above — a hash and an expiry timestamp for an in-flight
     // reset shouldn't leak through a stray query or response either.

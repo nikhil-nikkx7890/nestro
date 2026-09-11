@@ -9,6 +9,8 @@ import {
   forgotPassword,
   verifyResetOtp,
   resetPassword,
+  verifyEmail,
+  resendVerificationEmail,
 } from "../controllers/auth.controller.js";
 import { authenticate } from "../middlewares/authenticate.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
@@ -65,5 +67,16 @@ router.post(
   validateRequest(resetPasswordSchema),
   resetPassword,
 );
+
+// Email verification (ADR-063). No validateRequest — :token is a JWT,
+// not a Mongo ObjectId (validateObjectId doesn't fit), and the body-less
+// resend request has nothing to validate. No authLimiter on the GET: the
+// token is an unguessable signed JWT, not a value worth brute-forcing,
+// so there's no abuse shape here the general apiLimiter doesn't already
+// cover. The resend POST does share authLimiter — repeatedly triggering
+// it is the same "spam this address" shape forgotPassword already sits
+// behind it for.
+router.get("/verify-email/:token", verifyEmail);
+router.post("/resend-verification-email", authenticate, authLimiter, resendVerificationEmail);
 
 export default router;

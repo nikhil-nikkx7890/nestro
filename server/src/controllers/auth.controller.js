@@ -1,15 +1,29 @@
 import bcrypt from "bcryptjs";
 import User from "../models/user.model.js";
 import AppError from "../utils/AppError.js";
-import { generateToken, generateResetToken, verifyResetToken } from "../utils/jwt.js";
+import {
+  generateToken,
+  generateResetToken,
+  verifyResetToken,
+  generateEmailVerificationToken,
+  verifyEmailVerificationToken,
+} from "../utils/jwt.js";
 import { authCookieOptions } from "../utils/authCookie.js";
 import { generateOTP, hashOTP, compareOTP } from "../utils/otp.js";
 import { sendEmail } from "../utils/email.js";
 import {
-  welcomeEmail,
+  welcomeAndVerifyEmail,
+  verificationEmail,
   accountAlreadyExistsEmail,
   passwordResetOTPEmail,
 } from "../utils/emailTemplates.js";
+
+// ADR-063's link points at a frontend page (/verify-email/:token), which
+// calls GET /api/auth/verify-email/:token itself — the same "frontend
+// page wraps the backend call" shape every other multi-step auth flow in
+// this app already uses, rather than the email linking straight at the
+// API and expecting a JSON response to double as a landing page.
+const buildVerifyEmailUrl = (token) => `${process.env.CLIENT_URL}/verify-email/${token}`;
 
 const OTP_EXPIRY_MS = 15 * 60 * 1000;
 
@@ -71,9 +85,15 @@ export const register = async (req, res) => {
     }).catch((err) => console.error("Failed to send 'account exists' email:", err));
   } else {
     const user = await User.create({ name, email, password, role: "customer" });
-    sendEmail({ to: user.email, ...welcomeEmail(user.name) }).catch((err) =>
-      console.error("Failed to send welcome email:", err),
-    );
+
+    // Verify-but-don't-block (ADR-063): the account above is already
+    // fully created and usable — this token only controls the banner on
+    // the account page, never login or anything else the account can do.
+    const verifyToken = generateEmailVerificationToken(user._id);
+    sendEmail({
+      to: user.email,
+      ...welcomeAndVerifyEmail(user.name, buildVerifyEmailUrl(verifyToken)),
+    }).catch((err) => console.error("Failed to send welcome/verify email:", err));
   }
 
   return res.status(200).json({
@@ -123,6 +143,7 @@ export const login = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      isEmailVerified: user.isEmailVerified,
     },
   });
 };
@@ -152,6 +173,7 @@ export const getMe = async (req, res) => {
       name: req.user.name,
       email: req.user.email,
       role: req.user.role,
+      isEmailVerified: req.user.isEmailVerified,
     },
   });
 };
@@ -175,6 +197,7 @@ export const updateMe = async (req, res) => {
       name: req.user.name,
       email: req.user.email,
       role: req.user.role,
+      isEmailVerified: req.user.isEmailVerified,
     },
   });
 };
@@ -302,6 +325,87 @@ export const resetPassword = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      isEmailVerified: user.isEmailVerified,
     },
+  });
+};
+
+// --- Email verification, verify-but-don't-block (ADR-063) ---
+
+/**
+ * GET /api/auth/verify-email/:token. Unlike the password-reset token,
+ * there's no "consumed" state to clear here — verifying is idempotent by
+ * design (ADR-063: a stale or reused verification link carries no
+ * account-takeover risk the way a reused reset token would), so setting
+ * an already-true isEmailVerified again is a harmless no-op rather than
+ * something that needs guarding against. That also means an email
+ * client's link-preview bot pre-fetching this URL can't lock a real user
+ * out of verifying — it just verifies a little early.
+ *
+ * No auth required — clicking an emailed link isn't expected to happen
+ * from an active session, and the token itself is what's being trusted,
+ * the same as the reset-password token.
+ */
+export const verifyEmail = async (req, res) => {
+  const { token } = req.params;
+
+  let decoded;
+  try {
+    decoded = verifyEmailVerificationToken(token);
+  } catch {
+    throw new AppError(
+      "This verification link has expired or is invalid. You can request a new one from your account page.",
+      400,
+    );
+  }
+
+  const user = await User.findById(decoded.userId);
+  if (!user) {
+    throw new AppError(
+      "This verification link has expired or is invalid. You can request a new one from your account page.",
+      400,
+    );
+  }
+
+  if (!user.isEmailVerified) {
+    user.isEmailVerified = true;
+    await user.save({ validateBeforeSave: false });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: "Email verified.",
+  });
+};
+
+/**
+ * POST /api/auth/resend-verification-email. Authenticated and scoped to
+ * req.user — unlike forgotPassword, there's no email-in-body lookup and
+ * therefore no enumeration surface to guard against: only an
+ * already-logged-in account can trigger a resend for itself.
+ *
+ * Already-verified is treated as a benign no-op success rather than an
+ * error — the account page only shows the resend button when
+ * !isEmailVerified in the first place, so reaching this branch mainly
+ * means a stale tab or a race with another verification, not a caller
+ * doing anything wrong.
+ */
+export const resendVerificationEmail = async (req, res) => {
+  if (req.user.isEmailVerified) {
+    return res.status(200).json({
+      success: true,
+      message: "This email is already verified.",
+    });
+  }
+
+  const verifyToken = generateEmailVerificationToken(req.user._id);
+  sendEmail({
+    to: req.user.email,
+    ...verificationEmail(req.user.name, buildVerifyEmailUrl(verifyToken)),
+  }).catch((err) => console.error("Failed to send verification email:", err));
+
+  return res.status(200).json({
+    success: true,
+    message: "Verification email sent.",
   });
 };
