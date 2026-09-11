@@ -16,7 +16,7 @@
 
 > The API runs on Render's free tier and sleeps after ~15 minutes of inactivity — the first request may take 30–50 seconds to wake it.
 >
-> **Nestro is a portfolio project, not a real store.** The catalog, reviews and accounts are demo data, and nothing on it can actually be purchased.
+> **Nestro is a portfolio project, not a real store.** The catalog, reviews and accounts are demo data. Checkout is fully functional — including a real Razorpay **Test Mode** payment — but Test Mode means no real money ever moves, whichever payment method you choose.
 
 ### 🔑 Demo Accounts
 
@@ -30,7 +30,7 @@ Sign in at [/login](https://nestro-nikkx.vercel.app/login) to try either side of
 A few notes on what these accounts can and can't do:
 
 - **Admins can't post reviews** — reviews are customer-only by design, the same rule Cart and Wishlist follow. Sign in as the customer for that.
-- **Neither account can change its own password** — the profile endpoint accepts a name and nothing else, so the demo can't be locked.
+- **Password reset exists, but can't actually lock you out of a demo account** — transactional email runs on Resend's sandbox domain, which only ever delivers to the developer's own verified inbox regardless of the address on the account, so a reset code triggered against a demo account never reaches anyone else.
 - Anything an admin edits or deletes here is demo data, and the seed scripts rebuild it from scratch.
 
 Other demo customers exist (`arjun.demo@`, `neha.demo@`, `rohit.demo@`, `ananya.demo@`, `vikram.demo@` — all `@nestro.test`, same password) — useful if you want to see a product's reviews from more than one account.
@@ -153,6 +153,8 @@ Through Nestro, I aim to learn and practice:
 - bcryptjs (password hashing)
 - jsonwebtoken (JWT authentication)
 - cookie-parser
+- Resend (transactional email — password reset, email verification, OTP login)
+- Razorpay (payment gateway, Test Mode — webhook-confirmed)
 
 ---
 
@@ -164,16 +166,13 @@ Through Nestro, I aim to learn and practice:
 
 ---
 
-## Planned Integrations
+## Recently Shipped
 
-Next, in this order:
+Email infrastructure (Resend), password reset, email verification, and passwordless OTP login are all live — see [Account Security](#account-security) below. Commerce — Addresses, Checkout, Orders, and Razorpay Payments — is also complete; see [Commerce](#commerce).
 
-1. **Email infrastructure** — Nestro currently has no email-sending integration at all (Contact and Newsletter both store submissions only). This is the blocker behind everything below.
-2. **Password reset** — the most valuable of the four. Right now a customer who forgets their password has permanently lost the account.
-3. **Email verification on register** — likely verify-but-don't-block, so trying the demo doesn't require a real inbox.
-4. **Passwordless OTP login** — as an *alternative* sign-in path rather than mandatory 2FA, which is uncommon on customer storefront accounts.
+## Planned Next
 
-Also planned: Refresh Tokens, and a Super Admin role once there's genuinely more than one admin to manage.
+Nothing is currently in progress. On the table but not yet started: Refresh Tokens, a Super Admin role (once there's genuinely more than one admin to manage), and Phase 7's Dashboard & Analytics (charts/reports beyond the real counts already on the admin Dashboard).
 
 ---
 
@@ -294,7 +293,7 @@ A reusable form used for both creating and updating categories.
 - Cart page — quantity control, live subtotal, remove item
 - Wishlist page
 - About and Contact pages
-- Account/Profile page — edit name, an honest empty state for Order History (no orders can exist yet — Commerce isn't built)
+- Account/Profile page — edit name, saved addresses, and real order history with per-order detail and cancellation
 - No fabricated content anywhere on the storefront — no invented reviews, ratings, or business statistics; only real, computable data is shown
 
 ---
@@ -564,7 +563,7 @@ A full correctness and security review of the backend, completed before starting
 
 ### Automated Testing
 
-141 Jest + Supertest integration tests across 14 suites (Categories, Room Types, Brands, Materials, Colors, Products, Variants, Authentication, Users, Cart, Wishlist, Contact, Newsletter, and Reviews), covering the main success path and the most likely failure path for each route:
+290 Jest + Supertest integration tests across 21 suites (Categories, Room Types, Brands, Materials, Colors, Products, Variants, Authentication, Users, Cart, Wishlist, Addresses, Checkout, Orders, Payment Webhooks, Contact, Newsletter, and Reviews, among others), covering the main success path and the most likely failure path for each route:
 
 - Runs against an in-memory MongoDB (`mongodb-memory-server`) that exists only for the duration of the test run — real data is never touched
 - Explicit coverage for the authorization layer itself: an unauthenticated request and a wrong-role request are both tested against a protected route, not just the "happy path"
@@ -625,6 +624,31 @@ A full-codebase review carried out ahead of the first deployment, separate from 
 
 ---
 
+### Account Security
+
+Password reset, email verification, and a second sign-in path — built on **Resend** as the transactional email provider.
+
+- **Password reset** — a 3-step, OTP-based flow (request → verify code → set new password). The code is hashed before storage and compared in constant time, never stored or compared as plain text
+- **Email verification on register** — link-based, verify-but-don't-block: a new account is fully usable immediately, with a dismissible reminder until the link is clicked
+- **Passwordless OTP login** — a one-time code as an alternative to a password, for an existing account only
+- Every one of these responses is **constant** regardless of whether the email actually belongs to an account — including registration itself — so none of them can be used to enumerate which emails have accounts
+- Session tokens are purpose-scoped: a password-reset or email-verification token cannot be replayed as a login session, even though both are signed with the same secret
+
+---
+
+### Commerce
+
+Address management, checkout, order tracking, and online payment — Cash on Delivery and Razorpay side by side, not one replacing the other.
+
+- **Addresses** — unlimited saved addresses per customer, one always marked default, India-specific validation (10-digit mobile, 6-digit PIN)
+- **Checkout** — snapshots the cart and the selected address into a real Order at the moment of purchase, so a later price change or edited address never rewrites order history
+- **Stock safety** — every stock deduction is a single atomic, conditional database write, not a read-then-write — two customers racing for the last unit of stock can never both succeed
+- **Order tracking** — a six-stage delivery lifecycle (Pending → Confirmed → Processing → Shipped → Out for Delivery → Delivered) plus Cancelled/Returned, enforced as a strict state machine on both the customer's order-history view and the admin's order management page
+- **Payments (Razorpay, Test Mode)** — online payment sits alongside COD as a real checkout choice. A payment is only ever confirmed by Razorpay's server-to-server **webhook**, signature-verified and idempotent — never by the browser's own callback, which is used only for immediate visual feedback while the real confirmation is in flight
+- A stalled or failed online payment can be retried directly from the order's own page, and restocks automatically rather than holding inventory hostage against a payment that never completed
+
+---
+
 # 🚀 Roadmap
 
 ## Phase 1 — Admin Foundation
@@ -676,18 +700,19 @@ A full-codebase review carried out ahead of the first deployment, separate from 
 - ✅ Authorization / RBAC (backend)
 - ✅ Admin
 - ✅ Login / Register UI
-- ✅ Customer Accounts (registration, login, and a profile page to edit their name)
+- ✅ Customer Accounts (registration, login, saved addresses, and a profile page to edit their name)
+- ✅ Password Reset, Email Verification & Passwordless OTP Login (Resend)
 - Super Admin (deliberately deferred — no real use case yet with a single admin)
 
 ---
 
 ## Phase 5 — Commerce
 
-- Checkout
-- Address Management
-- Payment Integration
-- Orders
-- Order Tracking
+- ✅ Checkout
+- ✅ Address Management
+- ✅ Payment Integration (Razorpay, Test Mode — webhook-confirmed)
+- ✅ Orders
+- ✅ Order Tracking
 
 ---
 
@@ -757,6 +782,18 @@ JWT_EXPIRES_IN=7d
 # Optional — only read by `npm run seed:catalog`.
 # Free key from unsplash.com/developers.
 UNSPLASH_ACCESS_KEY=your_unsplash_access_key
+
+# Optional — the server runs fine without these, but password reset,
+# email verification, and OTP login all fail to send mail until
+# RESEND_API_KEY is set (free key at resend.com), and online checkout
+# fails at the "create payment" step until the two Razorpay keys are
+# set (Test Mode keys from your Razorpay Dashboard). COD checkout is
+# unaffected either way.
+RESEND_API_KEY=your_resend_api_key
+RESEND_FROM=onboarding@resend.dev
+RAZORPAY_KEY_ID=your_razorpay_test_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_test_key_secret
+RAZORPAY_WEBHOOK_SECRET=your_razorpay_webhook_secret
 ```
 
 > `CLIENT_URL` accepts a comma-separated list and drives **both** CORS and the Origin-verification middleware. In production it must exactly match the deployed frontend's domain, or every write request will be rejected with a 403.
@@ -783,6 +820,12 @@ Create a `.env.local` file inside the `client` directory.
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:5000/api
+
+# Optional — only needed to exercise the "Pay Online" checkout option.
+# Same value as the server's RAZORPAY_KEY_ID. Safe to expose to the
+# browser — it's a public identifier, not a secret; the matching
+# RAZORPAY_KEY_SECRET must never appear on the client.
+NEXT_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_test_key_id
 ```
 
 ---
@@ -866,7 +909,7 @@ Rather than only focusing on building features, I aim to understand the reasonin
 
 🟢 Customer Store (Listing, Filters, Product Detail, Cart, Wishlist, Home/About/Contact/Account)
 
-🟢 Automated Testing (141 Jest/Supertest tests)
+🟢 Automated Testing (290 Jest/Supertest tests)
 
 🟢 Pre-Deployment Security Audit
 
@@ -878,9 +921,13 @@ Rather than only focusing on building features, I aim to understand the reasonin
 
 🟢 Search, Sort & Responsive Pass
 
-⚪ Checkout & Payments
+🟢 Password Reset, Email Verification & Passwordless Login
 
-⚪ Orders
+🟢 Address Management
+
+🟢 Checkout & Payments (Razorpay, Test Mode)
+
+🟢 Orders & Order Tracking
 
 ⚪ Dashboard & Analytics
 
