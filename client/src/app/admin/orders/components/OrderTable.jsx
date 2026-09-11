@@ -6,6 +6,7 @@ import { Eye } from "lucide-react";
 import Pagination from "@/components/ui/Pagination";
 import SortableHeader from "@/components/ui/SortableHeader";
 import OrderStatusBadge from "@/components/ui/OrderStatusBadge";
+import PaymentStatusBadge from "@/components/ui/PaymentStatusBadge";
 import { ORDER_STATUSES } from "@/utils/orderStatus";
 import { formatPaise } from "@/utils/formatters";
 
@@ -64,7 +65,7 @@ export default function OrderTable({
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[860px]">
+          <table className="w-full min-w-[960px]">
             <thead>
               <tr className="border-b border-neutral-200 text-left">
                 <th className="px-6 py-4 text-sm font-semibold">Order</th>
@@ -78,6 +79,7 @@ export default function OrderTable({
                   onSort={handleSort}
                 />
                 <th className="px-6 py-4 text-sm font-semibold">Status</th>
+                <th className="px-6 py-4 text-sm font-semibold">Payment</th>
                 <SortableHeader
                   label="Placed"
                   field="createdAt"
@@ -115,6 +117,13 @@ export default function OrderTable({
 
                   <td className="whitespace-nowrap px-6 py-4">
                     <OrderStatusBadge status={order.status} />
+                  </td>
+
+                  <td className="whitespace-nowrap px-6 py-4">
+                    <PaymentStatusBadge
+                      paymentMethod={order.paymentMethod}
+                      paymentStatus={order.paymentStatus}
+                    />
                   </td>
 
                   <td className="whitespace-nowrap px-6 py-4 text-sm text-neutral-500">

@@ -92,15 +92,36 @@ const orderSchema = new mongoose.Schema(
       required: true,
     },
 
-    // COD-only for now (ADR-066) — the field exists (rather than being
-    // omitted until Payments) specifically so Payments extends this enum
-    // instead of introducing the field from scratch.
+    // ADR-066 kept this field COD-only specifically so Payments (ADR-067)
+    // could extend the enum instead of introducing the field from scratch.
     paymentMethod: {
       type: String,
-      enum: ["COD"],
+      enum: ["COD", "Razorpay"],
       default: "COD",
       required: true,
     },
+
+    // "N/A" for COD — cash changes hands physically on delivery, which
+    // isn't a state this app tracks, so COD orders never move off "N/A".
+    // Razorpay orders start "Pending" at checkout (a Razorpay order was
+    // created, nothing has been paid yet) and only the webhook — never
+    // the client-side checkout callback — moves one to "Paid" or "Failed"
+    // (ADR-067's core decision: the browser can't be trusted as the
+    // source of truth for whether money actually moved).
+    paymentStatus: {
+      type: String,
+      enum: ["N/A", "Pending", "Paid", "Failed"],
+      default: "N/A",
+      required: true,
+    },
+
+    // Razorpay's own identifiers, populated as the payment progresses:
+    // razorpayOrderId is set at checkout (before payment), razorpayPaymentId
+    // and razorpaySignature only once the webhook confirms a captured
+    // payment. Absent entirely for COD orders.
+    razorpayOrderId: { type: String },
+    razorpayPaymentId: { type: String },
+    razorpaySignature: { type: String },
 
     status: {
       type: String,

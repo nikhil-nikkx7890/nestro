@@ -7,8 +7,12 @@ import api from "@/lib/axios";
 // replace). Same "don't force a factory that doesn't match" call
 // auth.service.js and address.service.js already make.
 export const orderService = {
-  checkout: async (addressId) => {
-    const response = await api.post("/checkout", { addressId });
+  // paymentMethod defaults to COD server-side too (order.validator.js) —
+  // passed explicitly here so every call site is honest about which
+  // path it's taking, rather than relying on an implicit default two
+  // layers away.
+  checkout: async (addressId, paymentMethod = "COD") => {
+    const response = await api.post("/checkout", { addressId, paymentMethod });
     return response.data;
   },
 

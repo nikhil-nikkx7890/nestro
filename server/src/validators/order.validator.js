@@ -11,6 +11,10 @@ const objectId = z
 export const checkoutSchema = z
   .object({
     addressId: objectId,
+    // Defaults to COD so every existing caller (and every ADR-066 test)
+    // keeps working unchanged now that Payments (ADR-067) adds a second
+    // option.
+    paymentMethod: z.enum(["COD", "Razorpay"]).default("COD"),
   })
   .strict();
 

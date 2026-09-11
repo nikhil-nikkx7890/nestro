@@ -4,6 +4,7 @@ import Address from "../models/address.model.js";
 import ProductVariant from "../models/productVariant.model.js";
 import AppError from "../utils/AppError.js";
 import { buildQueryFeatures } from "../utils/buildQueryFeatures.js";
+import { getRazorpayClient } from "../config/razorpay.js";
 
 // Only these three stages allow a cancel — from the customer (cancelOrder)
 // or an equivalent admin action (updateOrderStatus) — matching ADR-066's
@@ -46,12 +47,16 @@ const isValidStatusTransition = (from, to) => {
 
 /**
  * Restores stock for every line in an order — the exact inverse of
- * checkout's decrement, used by both cancelOrder and updateOrderStatus
- * (Cancelled/Returned). A plain per-variant $inc, not a conditional
- * update: there is no stock floor to respect when giving stock back, only
- * when taking it (checkout's findOneAndUpdate does that side).
+ * checkout's decrement, used by cancelOrder, updateOrderStatus
+ * (Cancelled/Returned), and payment.controller.js's webhook handler on a
+ * failed Razorpay payment (ADR-067 — a payment that never completed gets
+ * the same "give the stock back" treatment as a cancellation, so it
+ * doesn't sit reserved against a transaction that isn't going to finish).
+ * A plain per-variant $inc, not a conditional update: there is no stock
+ * floor to respect when giving stock back, only when taking it
+ * (checkout's findOneAndUpdate does that side).
  */
-const restockOrderItems = async (items) => {
+export const restockOrderItems = async (items) => {
   await Promise.all(
     items.map((item) =>
       ProductVariant.updateOne({ _id: item.variant }, { $inc: { stock: item.quantity } }),
@@ -75,9 +80,18 @@ const restockOrderItems = async (items) => {
  * later item in this order fails after earlier ones already decremented,
  * every already-decremented item is restocked before the error is
  * thrown, so a failed checkout never leaves stock silently short.
+ *
+ * Stock still decrements immediately either way (ADR-066's own call,
+ * unchanged by Payments) — the difference for `paymentMethod: "Razorpay"`
+ * is what happens after: a Razorpay order is created and the Nestro
+ * Order is saved with `paymentStatus: "Pending"`, not "confirmed" in any
+ * sense. Only the webhook (payment.controller.js) ever moves it to
+ * "Paid" or "Failed" — this response's job is to hand the client enough
+ * (a Razorpay order id + the public key) to open the Checkout.js widget,
+ * nothing more (ADR-067).
  */
 export const checkout = async (req, res) => {
-  const { addressId } = req.body;
+  const { addressId, paymentMethod } = req.body;
 
   const address = await Address.findOne({ _id: addressId, user: req.user._id });
   if (!address) {
@@ -138,6 +152,32 @@ export const checkout = async (req, res) => {
 
     const subtotal = lineItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const shippingFee = 0;
+    const total = subtotal + shippingFee;
+
+    // For Razorpay, the gateway order is created before the Nestro Order
+    // is — its id becomes razorpayOrderId on the document we're about to
+    // save, so it has to exist first. If this call fails (bad
+    // credentials, Razorpay down), the catch block below restocks
+    // exactly like any other mid-checkout failure; no Nestro Order is
+    // ever created for a payment session that was never actually opened.
+    let razorpayOrder = null;
+    if (paymentMethod === "Razorpay") {
+      try {
+        razorpayOrder = await getRazorpayClient().orders.create({
+          amount: total,
+          currency: "INR",
+          // Razorpay caps receipt at 40 chars; a user id + timestamp is
+          // unique enough for a portfolio store's order volume without
+          // needing the Nestro Order's own id, which doesn't exist yet.
+          receipt: `nestro_${req.user._id}_${Date.now()}`.slice(0, 40),
+        });
+      } catch {
+        throw new AppError(
+          "Could not start the payment. Please try again in a moment.",
+          502,
+        );
+      }
+    }
 
     const order = await Order.create({
       user: req.user._id,
@@ -153,11 +193,17 @@ export const checkout = async (req, res) => {
         addressType: address.addressType,
         landmark: address.landmark,
       },
-      paymentMethod: "COD",
+      paymentMethod,
+      // COD never leaves "N/A" — there's no online transaction to track.
+      // Razorpay starts "Pending": a gateway order exists, nothing has
+      // been paid yet, and only the webhook (never this response) moves
+      // it to "Paid" or "Failed" (ADR-067).
+      paymentStatus: paymentMethod === "Razorpay" ? "Pending" : "N/A",
+      razorpayOrderId: razorpayOrder?.id,
       status: "Pending",
       subtotal,
       shippingFee,
-      total: subtotal + shippingFee,
+      total,
     });
 
     cart.items = [];
@@ -165,8 +211,21 @@ export const checkout = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Order placed successfully.",
+      message:
+        paymentMethod === "Razorpay"
+          ? "Order created — complete payment to confirm it."
+          : "Order placed successfully.",
       data: order,
+      // Only present for Razorpay — everything the client's Checkout.js
+      // widget needs to open the payment sheet for this specific order.
+      ...(razorpayOrder && {
+        razorpay: {
+          orderId: razorpayOrder.id,
+          amount: razorpayOrder.amount,
+          currency: razorpayOrder.currency,
+          keyId: process.env.RAZORPAY_KEY_ID,
+        },
+      }),
     });
   } catch (err) {
     // Whatever already succeeded — one or more decrements, possibly the

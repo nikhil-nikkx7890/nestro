@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useRequireCustomer } from "@/hooks/useRequireCustomer";
 import { orderService } from "@/services/order.service";
 import OrderStatusBadge from "@/components/ui/OrderStatusBadge";
+import PaymentStatusPanel from "@/components/ui/PaymentStatusPanel";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import { formatPaise, toTitleCase } from "@/utils/formatters";
 
@@ -141,7 +142,10 @@ export default function OrderDetailPage() {
             <span>Total</span>
             <span>{formatPaise(order.total)}</span>
           </div>
-          <p className="mt-2 text-xs text-[#78716C]">Payment: Cash on Delivery</p>
+        </div>
+
+        <div className="mt-6 border-t border-[#E7E5E4] pt-6">
+          <PaymentStatusPanel order={order} onPossiblyPaid={fetchOrder} />
         </div>
 
         <div className="mt-6 border-t border-[#E7E5E4] pt-6 text-sm">

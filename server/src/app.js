@@ -17,6 +17,7 @@ import wishlistRoutes from "./routes/wishlist.routes.js";
 import addressRoutes from "./routes/address.routes.js";
 import checkoutRoutes from "./routes/checkout.routes.js";
 import orderRoutes from "./routes/order.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
 import newsletterRoutes from "./routes/newsletter.routes.js";
 import reviewRoutes from "./routes/review.routes.js";
@@ -80,6 +81,17 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
 });
 app.use("/api", apiLimiter);
+
+/**
+ * Mounted before express.json() on purpose, and nowhere else in this
+ * file is order-sensitive the same way (ADR-067). Razorpay signs the
+ * exact raw bytes of the webhook body; express.json() would consume the
+ * request stream and hand the payment webhook route a parsed object with
+ * no way to recover the original bytes for signature verification. The
+ * route itself applies express.raw() only to /api/payments/webhook — see
+ * payment.routes.js.
+ */
+app.use("/api/payments", paymentRoutes);
 
 app.use(express.json());
 app.use(cookieParser());

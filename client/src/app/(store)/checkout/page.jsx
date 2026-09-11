@@ -8,18 +8,27 @@ import { toast } from "sonner";
 import clsx from "clsx";
 
 import { useRequireCustomer } from "@/hooks/useRequireCustomer";
+import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { addressService } from "@/services/address.service";
 import { orderService } from "@/services/order.service";
+import { openRazorpayCheckout } from "@/utils/razorpay";
 import { formatPaise, toTitleCase } from "@/utils/formatters";
+
+const PAYMENT_METHODS = [
+  { value: "COD", label: "Cash on Delivery", hint: "Pay when your order arrives" },
+  { value: "Razorpay", label: "Pay Online", hint: "Card, UPI, netbanking, wallets — via Razorpay" },
+];
 
 export default function CheckoutPage() {
   const { ready } = useRequireCustomer();
+  const { user } = useAuth();
   const router = useRouter();
   const { cart, loading: cartLoading, refetch: refetchCart } = useCart();
 
   const [addresses, setAddresses] = useState(null);
   const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("COD");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   const fetchAddresses = useCallback(async () => {
@@ -59,10 +68,38 @@ export default function CheckoutPage() {
 
     setIsPlacingOrder(true);
     try {
-      const res = await orderService.checkout(selectedAddressId);
+      const res = await orderService.checkout(selectedAddressId, paymentMethod);
       await refetchCart(); // the backend already cleared it; sync context state
-      toast.success("Order placed successfully.");
-      router.push(`/order-confirmation/${res.data._id}`);
+
+      if (paymentMethod === "COD") {
+        toast.success("Order placed successfully.");
+        router.push(`/order-confirmation/${res.data._id}`);
+        return;
+      }
+
+      // Razorpay: the order already exists (paymentStatus "Pending") —
+      // this widget only ever gives client-side feedback. Success,
+      // dismiss, and failure all land on the confirmation page either
+      // way, which reads the order's real, webhook-confirmed
+      // paymentStatus rather than trusting anything the widget reports
+      // (ADR-067).
+      openRazorpayCheckout({
+        orderId: res.razorpay.orderId,
+        amount: res.razorpay.amount,
+        currency: res.razorpay.currency,
+        keyId: res.razorpay.keyId,
+        prefill: { name: user?.name, email: user?.email },
+        onSuccess: () => {
+          toast.success("Payment received — confirming your order...");
+          router.push(`/order-confirmation/${res.data._id}`);
+        },
+        onDismissOrFail: () => {
+          toast.error(
+            "Payment wasn't completed. Your order was created and you can retry payment from there.",
+          );
+          router.push(`/order-confirmation/${res.data._id}`);
+        },
+      });
     } catch (error) {
       const message =
         error?.response?.data?.message || "Failed to place your order. Please try again.";
@@ -150,6 +187,36 @@ export default function CheckoutPage() {
           </div>
 
           <div className="rounded-2xl border border-[#E7E5E4] p-6">
+            <h2 className="font-heading text-xl text-[#1C1917]">Payment Method</h2>
+            <div className="mt-4 space-y-3">
+              {PAYMENT_METHODS.map((method) => (
+                <label
+                  key={method.value}
+                  className={clsx(
+                    "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition",
+                    paymentMethod === method.value
+                      ? "border-[#8B5E3C] bg-[#8B5E3C]/5"
+                      : "border-[#E7E5E4] hover:border-[#D6D3D1]",
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value={method.value}
+                    checked={paymentMethod === method.value}
+                    onChange={() => setPaymentMethod(method.value)}
+                    className="mt-1"
+                  />
+                  <div className="text-sm">
+                    <p className="font-medium text-[#1C1917]">{method.label}</p>
+                    <p className="text-[#78716C]">{method.hint}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-[#E7E5E4] p-6">
             <h2 className="font-heading text-xl text-[#1C1917]">Order Items</h2>
             <div className="mt-4 space-y-4">
               {cart.items.map(({ variant, quantity }) => {
@@ -208,7 +275,9 @@ export default function CheckoutPage() {
           </div>
 
           <p className="mt-4 text-xs text-[#78716C]">
-            Payment: Cash on Delivery — pay when your order arrives.
+            {paymentMethod === "COD"
+              ? "Payment: Cash on Delivery — pay when your order arrives."
+              : "Payment: Online via Razorpay — you'll be asked to pay next."}
           </p>
 
           <button
@@ -217,7 +286,11 @@ export default function CheckoutPage() {
             disabled={isPlacingOrder || addresses.length === 0 || !selectedAddressId}
             className="mt-6 w-full rounded-lg bg-[#8B5E3C] px-5 py-3 text-sm font-medium text-white transition hover:bg-[#6E4A2F] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isPlacingOrder ? "Placing Order..." : "Place Order"}
+            {isPlacingOrder
+              ? "Placing Order..."
+              : paymentMethod === "COD"
+                ? "Place Order"
+                : "Proceed to Payment"}
           </button>
         </div>
       </div>

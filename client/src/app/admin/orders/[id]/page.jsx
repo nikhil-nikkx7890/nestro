@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import { orderService } from "@/services/order.service";
 import OrderStatusBadge from "@/components/ui/OrderStatusBadge";
+import PaymentStatusBadge from "@/components/ui/PaymentStatusBadge";
 import DeleteConfirmationModal from "@/components/ui/DeleteConfirmationModal";
 import { formatPaise, toTitleCase } from "@/utils/formatters";
 import { formatOrderStatus, getNextStatusOptions } from "@/utils/orderStatus";
@@ -139,7 +140,13 @@ export default function AdminOrderDetailPage() {
                 <span>Total</span>
                 <span>{formatPaise(order.total)}</span>
               </div>
-              <p className="pt-1 text-xs text-neutral-500">Payment: {order.paymentMethod}</p>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs text-neutral-500">Payment</span>
+                <PaymentStatusBadge
+                  paymentMethod={order.paymentMethod}
+                  paymentStatus={order.paymentStatus}
+                />
+              </div>
             </div>
           </section>
 
